@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f4efe7;
+  --foreground: #112330;
+  --card: rgba(255, 255, 255, 0.82);
+  --border: rgba(17, 35, 48, 0.1);
+  --teal: #0f766e;
+  --teal-soft: #d6ebe8;
+  --coral: #d97757;
+  --sand: #fffaf4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.16), transparent 34%),
+    radial-gradient(circle at top right, rgba(217, 119, 87, 0.16), transparent 26%),
+    linear-gradient(180deg, #f8f5ef 0%, #edf6f4 100%);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--foreground);
+  background: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 0.75rem 0.9rem;
+  color: var(--foreground);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid rgba(15, 118, 110, 0.25);
+  outline-offset: 1px;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  background: var(--teal);
+  color: white;
+  padding: 0.75rem 1.1rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: rgba(17, 35, 48, 0.08);
+  color: var(--foreground);
+}
+
+@layer components {
+  .surface {
+    @apply rounded-[1.5rem] border border-[color:var(--border)] bg-[color:var(--card)] shadow-card backdrop-blur;
+  }
+
+  .pill {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold;
+  }
+}

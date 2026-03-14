@@ -1,4 +1,4 @@
-﻿# Blockers
+# Blockers
 
 ## Current Blockers
 
@@ -6,9 +6,10 @@ No active technical blockers are currently preventing feature work.
 
 ## Open Risks and Constraints
 
-- Billing and revenue reporting are still placeholders because no billing schema or billing workflows exist yet.
-- The document upload route currently returns a public URL from Supabase Storage; privacy and signed URL strategy should be reviewed before production use.
-- Appointment overlap protection is enforced in application logic but not yet reinforced by a database constraint or scheduling-specific server function.
-- The repository relies on service-role-backed server access for most reads and writes; if this changes, RLS-compatible client/server patterns will need to be revisited.
-- `scripts/reset-supabase.sql` is destructive and must only be run against environments you intend to rebuild.
-- The reset script preserves `auth.users`; replaying the standalone migration and reseeding will reuse or update existing auth users rather than deleting them.
+- Fresh Supabase environments now require running `0002_patient_search_and_history.sql` followed by `0003_must_have_features.sql`; the repository does not yet have a single consolidated bootstrap migration for the expanded must-have schema.
+- The seed script still targets the pre-must-have workflow set and does not populate encounters, billing claims, payments, immunizations, or detailed lab workflow data yet.
+- The document upload route still returns a public URL for uploaded documents; patient-facing file access should move toward signed URL delivery before production use.
+- The new laboratory detail workflow stores a report file URL/path but does not yet include a dedicated upload flow for lab PDFs.
+- Appointment overlap protection remains enforced in application logic rather than a database-native scheduling constraint.
+- The repository still relies on service-role-backed server access for most reads and writes; if this changes, the current client/server authorization patterns will need another pass.
+- `scripts/reset-supabase.sql` remains destructive and must only be run against environments you intend to rebuild.

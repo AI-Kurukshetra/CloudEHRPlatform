@@ -1,4 +1,4 @@
-﻿# Decisions
+# Decisions
 
 ## Architecture Decisions
 
@@ -39,7 +39,7 @@ The SQL migration enables RLS on all domain tables and defines policies based on
 
 ### Standalone Bootstrap Migration
 
-`supabase/migrations/0002_patient_search_and_history.sql` is the current source of truth for bootstrapping a clean database. It creates the latest MedFlow schema, indexes, RLS policies, and storage buckets in one pass without requiring earlier migrations.
+`supabase/migrations/0002_patient_search_and_history.sql` remains the current standalone bootstrap for the original MedFlow schema. `supabase/migrations/0003_must_have_features.sql` is now the additive migration that expands the schema to cover must-have workflows.
 
 ### Trigger-Maintained Patient Search Fields
 
@@ -55,7 +55,7 @@ The `/docs` directory is the project memory and must be updated after work is co
 
 ### Dedicated Paginated Query Module
 
-List-heavy screens now use `lib/query-repositories.ts` for paginated, filterable queries rather than overloading the CRUD-oriented repository file. This keeps server-side search contracts explicit and avoids hydrating full clinic datasets into UI pages.
+List-heavy screens use `lib/query-repositories.ts` for paginated, filterable queries rather than overloading the CRUD-oriented repository file. This keeps server-side search contracts explicit and avoids hydrating full clinic datasets into UI pages.
 
 ### Lexical For Medical History Editing
 
@@ -63,4 +63,16 @@ Patient past medical history editing uses Lexical in the React client with sanit
 
 ### Explicit Reset Script Instead Of Dropping The Entire Public Schema
 
-The repository uses `scripts/reset-supabase.sql` to explicitly remove MedFlow-owned tables, enums, helper functions, and storage buckets while preserving Supabase-managed schemas and auth users. This is safer than dropping the entire `public` schema in a shared Supabase project.
+The repository uses `scripts/reset-supabase.sql` to explicitly remove MedFlow-owned tables, helper database objects, and storage buckets while preserving Supabase-managed schemas and auth users. This is safer than dropping the entire `public` schema in a shared Supabase project.
+
+### Domain-Specific Repository Modules For Must-Have Features
+
+The must-have expansion adds focused repository modules for encounters, laboratory workflow, billing, immunizations, providers, audit detail, and decision support. This keeps the legacy repository intact while preventing a single monolithic file from becoming unmaintainable.
+
+### Rule-Based Clinical Decision Support For Initial Coverage
+
+Clinical decision support is implemented as a lightweight, deterministic rules layer for allergy conflicts, medication interactions, and preventive reminders. This keeps the feature auditable and easy to evolve without introducing opaque scoring or external dependencies.
+
+### Private Lab Report Storage Bucket
+
+Laboratory report files are intended to live in a dedicated private `lab-reports` storage bucket. This keeps sensitive diagnostic files aligned with the platform's existing private-bucket posture.

@@ -28,14 +28,16 @@ export type User = {
   fullName: string;
   role: Role;
   clinicId: string;
-  createdAt?: string;`r`n};
+  createdAt: string;
+};
 
 export type Clinic = {
   id: string;
   name: string;
   address: string;
   phone: string;
-  createdAt?: string;`r`n};
+  createdAt: string;
+};
 
 export type SessionUser = {
   id: string;
@@ -88,7 +90,8 @@ export type Provider = {
   fullName: string;
   specialty: string;
   licenseNumber: string;
-  createdAt?: string;`r`n};
+  createdAt?: string;
+};
 
 export type AppointmentStatus =
   | "scheduled"
@@ -153,7 +156,8 @@ export type Encounter = {
   appointmentId?: string | null;
   visitReason: string;
   status: EncounterStatus;
-  createdAt?: string;`r`n};
+  createdAt: string;
+};
 
 export type EncounterListItem = Encounter & {
   patientName: string;
@@ -253,7 +257,8 @@ export type BillingClaim = {
   status: BillingClaimStatus;
   totalAmount: number;
   submittedAt: string | null;
-  createdAt?: string;`r`n};
+  createdAt: string;
+};
 
 export type BillingItem = {
   id: string;
@@ -335,4 +340,5 @@ export type DocumentRecord = {
   clinicId: string;
   fileUrl: string;
   fileType: string;
-  createdAt?: string;`r`n};
+  createdAt: string;
+};

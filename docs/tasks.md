@@ -1,4 +1,4 @@
-﻿# Tasks
+# Tasks
 
 ## Completed
 
@@ -24,21 +24,30 @@
 - [x] Add rich-text past medical history editing to the patient chart with backend persistence
 - [x] Add a Supabase reset SQL script for dropping MedFlow tables and storage buckets before replaying migrations
 - [x] Rewrite `0002_patient_search_and_history.sql` as a standalone full-schema bootstrap migration for clean databases
+- [x] Rename Lab Results Integration to Laboratory Management in the UI and navigation
+- [x] Rename Reports to Analytics & Reports in the UI and navigation
+- [x] Implement structured clinical documentation with encounters, SOAP notes, diagnoses, procedures, and encounter pages
+- [x] Implement full laboratory management with orders, reports, component-level results, detail pages, and CRUD API support
+- [x] Implement billing and claim management with claim generation, billing items, payment tracking, and billing pages
+- [x] Implement patient portal pages for dashboard, appointments, prescriptions, labs, records, and self-service profile updates
+- [x] Implement immunization tracking with timelines, reminder status, and CRUD workflows
+- [x] Implement lightweight clinical decision support for allergy conflicts, interaction alerts, and preventive reminders during prescribing and encounter review
+- [x] Expand multi-provider support with provider roster pages, provider-aware route access, and provider-specific workflow filtering
+- [x] Expand the audit trail system with entity metadata, dedicated audit APIs/pages, and broader activity logging hooks
+- [x] Add React Query app providers and React Hook Form/Zod-powered modal workflows for new must-have modules
+- [x] Add incremental migration `0003_must_have_features.sql` for must-have schema expansion and private lab report storage
 
 ## Pending
 
+- [ ] Extend the Supabase seed script to populate encounter, billing, immunization, and laboratory workflow demo records for the new modules
 - [ ] Build a dedicated UI for document upload and document management
-- [ ] Build create/import workflows for lab results instead of read-only display
-- [ ] Replace placeholder revenue reporting with billing-backed analytics and real billing tables
-- [ ] Implement billing and insurance modules from the broader product vision
 - [ ] Implement telehealth workflows and UI
-- [ ] Implement clinical documentation authoring UI for medical records beyond patient past medical history
 - [ ] Add automated tests for auth flows, repositories, and route handlers
 - [ ] Add observability, error monitoring, and deployment runbook documentation
 - [ ] Add safe seed reset or environment-specific fixture strategies for non-demo environments
 
 ## Newly Identified Follow-up
 
-- [ ] Decide whether admin users should be allowed to create prescriptions or remain read-only in prescribing workflows
-- [ ] Decide whether storage objects should remain private-only with signed URL access rather than exposing public URLs from the upload route
-- [ ] Add stronger uniqueness and scheduling constraints at the database level for appointments
+- [ ] Decide whether to consolidate the current schema into a new standalone bootstrap migration after `0003_must_have_features.sql`
+- [ ] Decide whether patient-facing lab report downloads should be served exclusively through signed URLs instead of stored file links
+- [ ] Add stronger database-level scheduling constraints for appointments beyond repository overlap checks

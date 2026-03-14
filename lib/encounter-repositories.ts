@@ -71,6 +71,14 @@ type ProviderRow = {
   created_at: string;
 };
 
+function isMissingTableError(message: string) {
+  return (
+    message.includes("Could not find the table 'public.encounters'") ||
+    message.includes("relation \"public.encounters\" does not exist") ||
+    message.includes("relation \"encounters\" does not exist")
+  );
+}
+
 function mapEncounter(row: EncounterRow): Encounter {
   return {
     id: row.id,
@@ -163,7 +171,15 @@ export async function listEncountersWithDetails(clinicId: string, filters?: { pa
   if (filters?.status) query = query.eq("status", filters.status);
 
   const { data, error } = await query;
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isMissingTableError(error.message)) {
+      console.warn(
+        "[encounters] Missing table public.encounters. Apply supabase/migrations/0003_must_have_features.sql to enable encounter workflows."
+      );
+      return [];
+    }
+    throw new Error(error.message);
+  }
 
   const encounters = (data ?? []).map((row) => mapEncounter(row as EncounterRow));
   if (encounters.length === 0) return [];

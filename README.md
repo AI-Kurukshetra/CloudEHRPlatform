@@ -55,6 +55,13 @@ MedFlow AI is positioned as an alternative to **legacy and fragmented EHR system
 6. Start the app with `npm run dev`
 7. Open `/login`
 
+## Migration troubleshooting
+
+- If you see `Could not find the table 'public.encounters'`, `0003_must_have_features.sql` has not been applied successfully in the target Supabase project.
+- `0003_must_have_features.sql` is expected to be run as a full script from top to bottom; if it fails in the SQL editor transaction, fix the error and rerun the full file.
+- The migration uses a Supabase/PostgreSQL-compatible policy pattern (`drop policy if exists ...` then `create policy ...`) and qualifies `public.audit_logs` columns in the audit backfill update to avoid ambiguous-column errors.
+- After migration changes, refresh the app and rerun `npm run seed:supabase` to populate newly added tables.
+
 ## Seed contents
 
 The existing seed script creates or updates:
@@ -66,14 +73,22 @@ The existing seed script creates or updates:
 - 3 patient auth users with linked patient charts
 - 72 additional patient charts for search/filter testing
 - 51 appointments
+- 27 encounters
+- 27 clinical notes
+- 34 diagnoses
+- 36 procedures
 - 26 prescriptions
+- 16 lab orders
+- 10 lab reports
 - 39 lab summary rows
+- 7 billing claims
+- 14 billing claim items
+- 4 payments
+- 27 immunization records
 - 20 medical records
 - 2 audit log entries
 
 All seeded auth users use password `Medflow123!`.
-
-Note: the current seed script does **not yet** populate the newly added encounter, billing, immunization, or detailed laboratory workflow tables.
 
 ## Registration behavior
 

@@ -30,3 +30,7 @@
 - Added React Query app providers and React Hook Form/Zod-based client workflows for encounters, labs, billing, immunizations, portal profile updates, and prescribing.
 - Added `supabase/migrations/0003_must_have_features.sql` for must-have schema expansion and updated the reset script to cover the new tables and private lab report bucket.
 - Verified the expanded application with `npm run typecheck` and `npm run build`.
+- Updated `0003_must_have_features.sql` for wider Supabase/PostgreSQL compatibility by replacing `create policy if not exists` with `drop policy if exists` + `create policy`.
+- Fixed an ambiguous-column migration error in the audit log backfill update by fully qualifying `public.audit_logs` columns.
+- Extended `scripts/seed-supabase.mjs` to seed must-have workflow tables, including encounters, clinical notes, diagnoses, procedures, lab orders/reports, billing claims/items, payments, and immunizations.
+- Updated setup and `/docs` context files with migration troubleshooting guidance and current seed coverage.

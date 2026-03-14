@@ -39,7 +39,7 @@
 
 ## Pending
 
-- [ ] Extend the Supabase seed script to populate encounter, billing, immunization, and laboratory workflow demo records for the new modules
+- [x] Extend the Supabase seed script to populate encounter, billing, immunization, and laboratory workflow demo records for the new modules
 - [ ] Build a dedicated UI for document upload and document management
 - [ ] Implement telehealth workflows and UI
 - [ ] Add automated tests for auth flows, repositories, and route handlers

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import "@/app/globals.css";
+import { AppProviders } from "@/components/providers/app-providers";
 
 export const metadata: Metadata = {
   title: "MedFlow AI",
@@ -15,7 +16,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="font-sans text-ink antialiased">{children}</body>
+      <body className="font-sans text-ink antialiased">
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   );
 }

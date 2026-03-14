@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
-import { createLabWorkflow, deleteLabWorkflow, getLabWorkflow, listLabOrdersWithDetails, updateLabWorkflow } from "@/lib/lab-repositories";
-import { labOrderFiltersSchema, labWorkflowSchema } from "@/lib/schemas";
+import { createEncounterBundle, deleteEncounterById, getEncounterDetailById, listEncountersWithDetails, updateEncounterBundle } from "@/lib/encounter-repositories";
+import { encounterBundleSchema, encounterFiltersSchema } from "@/lib/schemas";
 import { logAuditAction } from "@/lib/repositories";
 
 export async function GET(request: Request) {
   const session = await getSessionUser();
-  if (!session || !["admin", "doctor", "patient"].includes(session.role)) {
+  if (!session || !["admin", "doctor", "staff", "patient"].includes(session.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const searchParams = Object.fromEntries(new URL(request.url).searchParams.entries());
   if (searchParams.id) {
-    const detail = await getLabWorkflow(searchParams.id, session.clinicId);
+    const detail = await getEncounterDetailById(searchParams.id, session.clinicId);
     if (!detail) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: detail });
   }
 
-  const parsed = labOrderFiltersSchema.safeParse({
+  const parsed = encounterFiltersSchema.safeParse({
     ...searchParams,
     patientId: session.role === "patient" ? session.patientId ?? undefined : searchParams.patientId,
     providerId: session.role === "doctor" ? session.providerId ?? undefined : searchParams.providerId
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid query parameters." }, { status: 400 });
   }
 
-  const data = await listLabOrdersWithDetails(session.clinicId, parsed.data);
+  const data = await listEncountersWithDetails(session.clinicId, parsed.data);
   return NextResponse.json({ data });
 }
 
@@ -43,14 +43,14 @@ export async function POST(request: Request) {
   }
 
   const payload = await request.json();
-  const parsed = labWorkflowSchema.safeParse({ ...payload, clinicId: session.clinicId, providerId: session.providerId ?? payload.providerId });
+  const parsed = encounterBundleSchema.safeParse({ ...payload, clinicId: session.clinicId, providerId: session.providerId ?? payload.providerId });
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid laboratory payload", details: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: "Invalid encounter payload", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data = await createLabWorkflow(parsed.data);
+  const data = await createEncounterBundle(parsed.data);
   if (data) {
-    await logAuditAction(session.id, `Created laboratory order ${data.order.id}`);
+    await logAuditAction(session.id, `Created encounter ${data.encounter.id}`);
   }
   return NextResponse.json({ data }, { status: 201 });
 }
@@ -62,15 +62,15 @@ export async function PUT(request: Request) {
   }
 
   const payload = await request.json();
-  const labId = typeof payload.id === "string" ? payload.id : "";
-  const parsed = labWorkflowSchema.safeParse({ ...payload, clinicId: session.clinicId, providerId: session.providerId ?? payload.providerId });
-  if (!labId || !parsed.success) {
-    return NextResponse.json({ error: "Invalid laboratory payload" }, { status: 400 });
+  const encounterId = typeof payload.id === "string" ? payload.id : "";
+  const parsed = encounterBundleSchema.safeParse({ ...payload, clinicId: session.clinicId, providerId: session.providerId ?? payload.providerId });
+  if (!encounterId || !parsed.success) {
+    return NextResponse.json({ error: "Invalid encounter payload" }, { status: 400 });
   }
 
-  const data = await updateLabWorkflow(labId, session.clinicId, parsed.data);
+  const data = await updateEncounterBundle(encounterId, session.clinicId, parsed.data);
   if (data) {
-    await logAuditAction(session.id, `Updated laboratory order ${data.order.id}`);
+    await logAuditAction(session.id, `Updated encounter ${data.encounter.id}`);
   }
   return NextResponse.json({ data });
 }
@@ -81,12 +81,12 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const labId = new URL(request.url).searchParams.get("id");
-  if (!labId) {
-    return NextResponse.json({ error: "Lab id is required" }, { status: 400 });
+  const encounterId = new URL(request.url).searchParams.get("id");
+  if (!encounterId) {
+    return NextResponse.json({ error: "Encounter id is required" }, { status: 400 });
   }
 
-  await deleteLabWorkflow(labId, session.clinicId);
-  await logAuditAction(session.id, `Deleted laboratory order ${labId}`);
+  await deleteEncounterById(encounterId, session.clinicId);
+  await logAuditAction(session.id, `Deleted encounter ${encounterId}`);
   return NextResponse.json({ ok: true });
 }

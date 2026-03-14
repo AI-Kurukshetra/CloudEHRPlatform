@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
-import { useDeferredValue, useEffect, useState } from "react";
+import { useDeferredValue, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import type { PatientSummaryCard } from "@/lib/types";
 
@@ -15,21 +16,16 @@ export function PatientSearchSelect({
 }) {
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
-  const [options, setOptions] = useState<PatientSummaryCard[]>([]);
   const [selectedId, setSelectedId] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-
-    async function loadPatients() {
-      setLoading(true);
+  const patientsQuery = useQuery({
+    queryKey: ["patient-picker", deferredQuery],
+    queryFn: async () => {
       const params = new URLSearchParams({
         search: deferredQuery,
         page: "1",
         limit: "8"
       });
-
       const response = await fetch(`/api/patients?${params.toString()}`, {
         headers: {
           accept: "application/json"
@@ -37,35 +33,20 @@ export function PatientSearchSelect({
       });
 
       if (!response.ok) {
-        setLoading(false);
-        return;
+        throw new Error("Unable to search patient records.");
       }
 
       const payload = await response.json();
-      if (!active) {
-        return;
-      }
-
-      const nextOptions = (payload.data ?? []) as PatientSummaryCard[];
-      setOptions(nextOptions);
-      setSelectedId((current) => current || nextOptions[0]?.id || "");
-      setLoading(false);
+      return (payload.data ?? []) as PatientSummaryCard[];
     }
+  });
 
-    loadPatients().catch(() => {
-      if (active) {
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [deferredQuery]);
+  const options = patientsQuery.data ?? [];
+  const effectiveSelectedId = selectedId || options[0]?.id || "";
 
   return (
     <div className="grid gap-3">
-      <input type="hidden" name={name} value={selectedId} required={required} />
+      <input type="hidden" name={name} value={effectiveSelectedId} required={required} />
       <label className="block text-sm text-ink/75">
         {label}
         <input
@@ -77,9 +58,9 @@ export function PatientSearchSelect({
       <label className="block text-sm text-ink/75">
         Matching patients
         <select
-          value={selectedId}
+          value={effectiveSelectedId}
           onChange={(event) => setSelectedId(event.target.value)}
-          disabled={loading || options.length === 0}
+          disabled={patientsQuery.isLoading || options.length === 0}
         >
           {options.map((patient) => (
             <option key={patient.id} value={patient.id}>
@@ -89,9 +70,12 @@ export function PatientSearchSelect({
         </select>
       </label>
       <p className="text-xs text-ink/55">
-        {loading ? "Searching patient records..." : options.length ? `${options.length} patient matches loaded from the server.` : "No patient matches found."}
+        {patientsQuery.isLoading
+          ? "Searching patient records..."
+          : options.length
+            ? `${options.length} patient matches loaded from the server.`
+            : "No patient matches found."}
       </p>
     </div>
   );
 }
-

@@ -13,7 +13,7 @@ export function PortalProfileForm({
   defaultValues
 }: {
   patientId: string;
-  defaultValues: z.infer<typeof patientSelfUpdateSchema>;
+  defaultValues: z.input<typeof patientSelfUpdateSchema>;
 }) {
   const router = useRouter();
   const form = useForm<z.infer<typeof patientSelfUpdateSchema>>({

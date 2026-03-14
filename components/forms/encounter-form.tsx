@@ -8,7 +8,7 @@ import type { z } from "zod";
 
 import { encounterBundleSchema } from "@/lib/schemas";
 
-type EncounterFormValues = z.infer<typeof encounterBundleSchema>;
+type EncounterFormValues = z.input<typeof encounterBundleSchema>;
 
 export function EncounterForm({
   clinicId,
@@ -69,7 +69,7 @@ export function EncounterForm({
     },
     onSuccess: (payload) => {
       const nextId = payload.data?.encounter?.id ?? payload.data?.id;
-      router.push(redirectTo ?? (nextId ? `/encounters/${nextId}` : "/encounters"));
+      router.push((redirectTo ?? (nextId ? `/encounters/${nextId}` : "/encounters")) as never);
       router.refresh();
     }
   });

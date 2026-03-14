@@ -72,7 +72,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Invalid billing payload" }, { status: 400 });
   }
 
-  const data = await updateBillingClaimRecord(claimId, session.clinicId, parsed.data);
+  const data = await updateBillingClaimRecord(claimId, session.clinicId, { ...parsed.data, claimNumber: parsed.data.claimNumber ?? `CLM-${claimId.slice(0, 8).toUpperCase()}` });
   if (data) {
     await logAuditAction(session.id, `Updated billing claim ${data.claim.id}`);
   }

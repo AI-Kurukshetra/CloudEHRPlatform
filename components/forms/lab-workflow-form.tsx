@@ -8,7 +8,7 @@ import type { z } from "zod";
 
 import { labWorkflowSchema } from "@/lib/schemas";
 
-type LabWorkflowValues = z.infer<typeof labWorkflowSchema>;
+type LabWorkflowValues = z.input<typeof labWorkflowSchema>;
 
 export function LabWorkflowForm({
   clinicId,
@@ -44,23 +44,35 @@ export function LabWorkflowForm({
 
   const mutation = useMutation({
     mutationFn: async (payload: LabWorkflowValues) => {
+      const normalized = {
+        ...payload,
+        report: payload.report
+          ? {
+              ...payload.report,
+              reportDate: typeof payload.report.reportDate === "string" && payload.report.reportDate ? new Date(payload.report.reportDate).toISOString() : payload.report.reportDate
+            }
+          : payload.report
+      };
+
       const response = await fetch("/api/labs", {
         method: labId ? "PUT" : "POST",
         headers: {
           "content-type": "application/json",
           accept: "application/json"
         },
-        body: JSON.stringify(labId ? { id: labId, ...payload } : payload)
+        body: JSON.stringify(labId ? { id: labId, ...normalized } : normalized)
       });
+
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         throw new Error(error.error ?? "Unable to save lab workflow.");
       }
+
       return response.json();
     },
     onSuccess: (payload) => {
       const nextId = payload.data?.order?.id ?? payload.data?.id;
-      router.push(redirectTo ?? (nextId ? `/labs/${nextId}` : "/labs"));
+      router.push((redirectTo ?? (nextId ? `/labs/${nextId}` : "/labs")) as never);
       router.refresh();
     }
   });

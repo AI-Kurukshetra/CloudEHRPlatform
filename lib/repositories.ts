@@ -1,4 +1,4 @@
-﻿import { randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 
 import { createSupabaseAdminClient } from "@/lib/supabase";
 import type {
@@ -95,6 +95,10 @@ type AuditLogRow = {
   user_id: string;
   action: string;
   timestamp: string;
+  entity_type?: string | null;
+  entity_id?: string | null;
+  changes?: Record<string, unknown> | null;
+  created_at?: string | null;
 };
 
 function isBootstrapError(error: SupabaseErrorLike | null | undefined) {
@@ -196,7 +200,11 @@ function mapAuditLog(row: AuditLogRow): AuditLog {
   return {
     id: row.id,
     userId: row.user_id,
+    entityType: row.entity_type ?? "system",
+    entityId: row.entity_id ?? row.id,
     action: row.action,
+    changes: row.changes ?? null,
+    createdAt: row.created_at ?? row.timestamp,
     timestamp: row.timestamp
   };
 }

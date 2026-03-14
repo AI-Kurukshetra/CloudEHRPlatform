@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid immunization payload", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data = await createImmunizationRecord(parsed.data);
+  const data = await createImmunizationRecord({ ...parsed.data, nextDueDate: parsed.data.nextDueDate ?? null });
   await logAuditAction(session.id, `Recorded immunization ${data.vaccineName}`);
   return NextResponse.json({ data }, { status: 201 });
 }
@@ -55,7 +55,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Invalid immunization payload" }, { status: 400 });
   }
 
-  const data = await updateImmunizationRecord(immunizationId, session.clinicId, parsed.data);
+  const data = await updateImmunizationRecord(immunizationId, session.clinicId, { ...parsed.data, nextDueDate: parsed.data.nextDueDate ?? null });
   await logAuditAction(session.id, `Updated immunization ${immunizationId}`);
   return NextResponse.json({ data });
 }

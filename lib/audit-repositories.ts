@@ -58,7 +58,7 @@ export async function createAuditRecord(input: { userId: string; clinicId: strin
     changes: input.changes ?? null,
     timestamp: new Date().toISOString()
   });
-  return { id, ...input, createdAt: new Date().toISOString(), timestamp: new Date().toISOString() } satisfies AuditLog;
+  return { id, ...input, changes: input.changes ?? null, createdAt: new Date().toISOString(), timestamp: new Date().toISOString() } satisfies AuditLog;
 }
 
 export async function updateAuditRecord(id: string, clinicId: string, input: { entityType: string; entityId: string; action: string; changes?: Record<string, unknown> | null; }) {
@@ -69,7 +69,7 @@ export async function updateAuditRecord(id: string, clinicId: string, input: { e
     action: input.action,
     changes: input.changes ?? null
   }).eq("id", id).eq("clinic_id", clinicId);
-  return { id, clinicId, userId: "", ...input, createdAt: new Date().toISOString(), timestamp: new Date().toISOString() } satisfies AuditLog;
+  return { id, clinicId, userId: "", ...input, changes: input.changes ?? null, createdAt: new Date().toISOString(), timestamp: new Date().toISOString() } satisfies AuditLog;
 }
 
 export async function deleteAuditRecord(id: string, clinicId: string) {

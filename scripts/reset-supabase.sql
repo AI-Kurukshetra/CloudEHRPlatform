@@ -1,4 +1,4 @@
-﻿-- MedFlow AI Supabase reset script
+-- MedFlow AI Supabase reset script
 -- Run this in the Supabase SQL editor before reapplying migrations.
 -- It removes MedFlow public-schema tables, helper functions/types, and app storage buckets.
 -- Auth users are intentionally preserved.
@@ -11,7 +11,8 @@ where bucket_id in (
   'medical-records',
   'prescriptions',
   'patient-documents',
-  'doctor-certifications'
+  'doctor-certifications',
+  'lab-reports'
 );
 
 delete from storage.buckets
@@ -19,10 +20,21 @@ where id in (
   'medical-records',
   'prescriptions',
   'patient-documents',
-  'doctor-certifications'
+  'doctor-certifications',
+  'lab-reports'
 );
 
 -- Drop application tables from leaf dependencies upward.
+drop table if exists public.payments cascade;
+drop table if exists public.billing_items cascade;
+drop table if exists public.billing_claims cascade;
+drop table if exists public.immunizations cascade;
+drop table if exists public.lab_reports cascade;
+drop table if exists public.lab_orders cascade;
+drop table if exists public.procedures cascade;
+drop table if exists public.diagnoses cascade;
+drop table if exists public.clinical_notes cascade;
+drop table if exists public.encounters cascade;
 drop table if exists public.audit_logs cascade;
 drop table if exists public.documents cascade;
 drop table if exists public.lab_results cascade;

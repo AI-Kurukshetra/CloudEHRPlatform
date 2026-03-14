@@ -14,8 +14,8 @@ export default async function ReportsPage() {
   return (
     <AppShell
       user={user}
-      title="Reporting and analytics"
-      subtitle="Track appointment demand, provider productivity, billing posture, and clinical follow-up indicators."
+      title="Analytics & reports"
+      subtitle="Track operational demand, provider productivity, billing posture, and follow-up indicators."
     >
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
         <SectionCard eyebrow="Appointments" title="Trend snapshot">
@@ -65,7 +65,7 @@ export default async function ReportsPage() {
             {analytics.recentAuditLogs.map((log) => (
               <div key={log.id} className="rounded-[1.2rem] bg-white/55 p-4 text-sm text-ink/75">
                 <p className="font-medium text-ink">{log.action}</p>
-                <p className="mt-1 text-ink/60">User {log.userId} | {new Date(log.timestamp).toLocaleString()}</p>
+                <p className="mt-1 text-ink/60">User {log.userId} | {new Date(log.timestamp ?? log.createdAt).toLocaleString()}</p>
               </div>
             ))}
             {analytics.recentAuditLogs.length === 0 ? <p className="text-sm text-ink/65">No audit entries have been recorded yet.</p> : null}

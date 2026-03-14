@@ -8,7 +8,7 @@ import type { z } from "zod";
 
 import { billingClaimSchema } from "@/lib/schemas";
 
-type BillingClaimValues = z.infer<typeof billingClaimSchema>;
+type BillingClaimValues = z.input<typeof billingClaimSchema>;
 
 export function BillingClaimForm({
   clinicId,
@@ -46,22 +46,29 @@ export function BillingClaimForm({
 
   const mutation = useMutation({
     mutationFn: async (payload: BillingClaimValues) => {
+      const normalized = {
+        ...payload,
+        submittedAt: typeof payload.submittedAt === "string" && payload.submittedAt ? new Date(payload.submittedAt).toISOString() : payload.submittedAt ?? null
+      };
+
       const response = await fetch("/api/billing", {
         method: claimId ? "PUT" : "POST",
         headers: {
           "content-type": "application/json",
           accept: "application/json"
         },
-        body: JSON.stringify(claimId ? { id: claimId, ...payload } : payload)
+        body: JSON.stringify(claimId ? { id: claimId, ...normalized } : normalized)
       });
+
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         throw new Error(error.error ?? "Unable to save billing claim.");
       }
+
       return response.json();
     },
     onSuccess: () => {
-      router.push(redirectTo ?? "/billing/claims");
+      router.push((redirectTo ?? "/billing/claims") as never);
       router.refresh();
     }
   });

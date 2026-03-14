@@ -6,11 +6,17 @@ import { createSupabaseMiddlewareClient } from "@/lib/supabase";
 
 const protectedPrefixes = [
   "/dashboard",
+  "/portal",
   "/patients",
   "/appointments",
+  "/encounters",
   "/prescriptions",
   "/labs",
+  "/immunizations",
+  "/billing",
+  "/providers",
   "/reports",
+  "/audit",
   "/admin"
 ];
 
@@ -48,11 +54,17 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/portal/:path*",
     "/patients/:path*",
     "/appointments/:path*",
+    "/encounters/:path*",
     "/prescriptions/:path*",
     "/labs/:path*",
+    "/immunizations/:path*",
+    "/billing/:path*",
+    "/providers/:path*",
     "/reports/:path*",
+    "/audit/:path*",
     "/admin/:path*"
   ]
 };

@@ -1,14 +1,14 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { SectionCard } from "@/components/dashboard/section-card";
+import { PrescriptionComposer } from "@/components/forms/prescription-composer";
 import { AppShell } from "@/components/layout/app-shell";
 import { PaginationControls } from "@/components/pagination-controls";
-import { PatientSearchSelect } from "@/components/patients/patient-search-select";
 import { PrescriptionList } from "@/components/prescriptions/prescription-list";
 import { requireUser } from "@/lib/auth";
 import { listPrescriptionsPage } from "@/lib/query-repositories";
-import { listProviders } from "@/lib/repositories";
+import { listPatients, listProviders } from "@/lib/repositories";
 import { prescriptionFiltersSchema } from "@/lib/schemas";
 
 function pickParam(value: string | string[] | undefined) {
@@ -30,9 +30,10 @@ export default async function PrescriptionsPage({
     providerId: user.role === "doctor" ? user.providerId ?? undefined : undefined
   });
   const filters = parsed.success ? parsed.data : { page: 1, limit: 20 };
-  const [providers, prescriptions] = await Promise.all([
+  const [providers, prescriptions, patients] = await Promise.all([
     listProviders(user.clinicId),
-    listPrescriptionsPage(user.clinicId, filters)
+    listPrescriptionsPage(user.clinicId, filters),
+    user.role === "doctor" ? listPatients(user.clinicId) : Promise.resolve([])
   ]);
   const error = pickParam(params.error);
 
@@ -40,7 +41,7 @@ export default async function PrescriptionsPage({
     <AppShell
       user={user}
       title="Prescription management"
-      subtitle="Search medication orders without hydrating the full prescription ledger or clinic patient list into the page."
+      subtitle="Search medication orders while surfacing clinical decision support during prescribing."
     >
       {error ? <div className="surface border-coral/20 bg-coral/10 p-4 text-sm text-coral">{error}</div> : null}
       <section className="grid gap-4 md:grid-cols-3">
@@ -84,33 +85,10 @@ export default async function PrescriptionsPage({
           ) : !user.providerId ? (
             <p className="rounded-[1.2rem] bg-white/55 p-4 text-sm text-ink/70">This doctor account is not linked to a provider profile yet.</p>
           ) : (
-            <form action="/api/prescriptions" method="post" className="grid gap-4">
-              <input type="hidden" name="clinicId" value={user.clinicId} />
-              <input type="hidden" name="redirectTo" value="/prescriptions" />
-              <input type="hidden" name="providerId" value={user.providerId} />
-              <PatientSearchSelect name="patientId" label="Patient" />
-              <label className="block text-sm text-ink/75">
-                Drug name
-                <input name="drugName" defaultValue="Atorvastatin" required />
-              </label>
-              <label className="block text-sm text-ink/75">
-                Dosage
-                <input name="dosage" defaultValue="10mg" required />
-              </label>
-              <label className="block text-sm text-ink/75">
-                Frequency
-                <input name="frequency" defaultValue="Once nightly" required />
-              </label>
-              <label className="block text-sm text-ink/75">
-                Duration
-                <input name="duration" defaultValue="30 days" required />
-              </label>
-              <button type="submit">Issue prescription</button>
-            </form>
+            <PrescriptionComposer clinicId={user.clinicId} providerId={user.providerId} patients={patients} />
           )}
         </SectionCard>
       </div>
     </AppShell>
   );
 }
-

@@ -8,7 +8,7 @@ import type { z } from "zod";
 
 import { immunizationSchema } from "@/lib/schemas";
 
-type ImmunizationValues = z.infer<typeof immunizationSchema>;
+type ImmunizationValues = z.input<typeof immunizationSchema>;
 
 export function ImmunizationForm({
   clinicId,
@@ -58,7 +58,7 @@ export function ImmunizationForm({
       return response.json();
     },
     onSuccess: () => {
-      router.push(redirectTo ?? "/immunizations");
+      router.push((redirectTo ?? "/immunizations") as never);
       router.refresh();
     }
   });

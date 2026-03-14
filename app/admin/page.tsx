@@ -65,7 +65,7 @@ export default async function AdminPage() {
           {auditLogs.map((log) => (
             <div key={log.id} className="rounded-[1.2rem] bg-white/55 p-4 text-sm text-ink/75">
               <p className="font-medium text-ink">{log.action}</p>
-              <p className="mt-1">{new Date(log.timestamp).toLocaleString()}</p>
+              <p className="mt-1">{new Date(log.timestamp ?? log.createdAt ?? new Date().toISOString()).toLocaleString()}</p>
             </div>
           ))}
           {auditLogs.length === 0 ? <p className="text-sm text-ink/65">No audit activity recorded yet.</p> : null}

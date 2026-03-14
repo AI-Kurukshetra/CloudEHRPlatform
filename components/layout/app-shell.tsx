@@ -11,28 +11,41 @@ const navByRole: Record<Role, Array<{ href: Route; label: string }>> = {
     { href: "/dashboard", label: "Dashboard" },
     { href: "/patients", label: "Patients" },
     { href: "/appointments", label: "Appointments" },
+    { href: "/encounters", label: "Encounters" },
     { href: "/prescriptions", label: "Prescriptions" },
-    { href: "/labs", label: "Labs" },
-    { href: "/reports", label: "Reports" },
+    { href: "/labs", label: "Laboratory Management" },
+    { href: "/immunizations", label: "Immunizations" },
+    { href: "/billing", label: "Billing" },
+    { href: "/providers", label: "Providers" },
+    { href: "/reports", label: "Analytics & Reports" },
+    { href: "/audit", label: "Audit" },
     { href: "/admin", label: "Admin" }
   ],
   doctor: [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/patients", label: "Patients" },
     { href: "/appointments", label: "Appointments" },
+    { href: "/encounters", label: "Encounters" },
     { href: "/prescriptions", label: "Prescriptions" },
-    { href: "/labs", label: "Labs" }
+    { href: "/labs", label: "Laboratory Management" },
+    { href: "/immunizations", label: "Immunizations" },
+    { href: "/billing", label: "Billing" },
+    { href: "/providers", label: "Providers" }
   ],
   staff: [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/patients", label: "Patients" },
-    { href: "/appointments", label: "Appointments" }
+    { href: "/appointments", label: "Appointments" },
+    { href: "/billing", label: "Billing" },
+    { href: "/providers", label: "Providers" }
   ],
   patient: [
     { href: "/dashboard", label: "Dashboard" },
+    { href: "/portal/dashboard", label: "Portal" },
     { href: "/appointments", label: "Appointments" },
     { href: "/prescriptions", label: "Prescriptions" },
-    { href: "/labs", label: "Labs" }
+    { href: "/labs", label: "Laboratory Management" },
+    { href: "/immunizations", label: "Immunizations" }
   ]
 };
 

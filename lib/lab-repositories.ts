@@ -159,9 +159,7 @@ export async function listLabOrdersWithDetails(clinicId: string, filters?: { pat
   const patientMap = new Map((patientRows ?? []).map((row) => [row.id as string, mapPatient(row as PatientRow)]));
   const providerMap = new Map((providerRows ?? []).map((row) => [row.id as string, mapProvider(row as ProviderRow)]));
   const reportCountMap = new Map<string, number>();
-  (reportRows ?? []).forEach((row) => {
-    reportCountMap.set(row.lab_order_id as string, (reportCountMap.get(row.lab_order_id as string) ?? 0) + 1);
-  });
+  (reportRows ?? []).forEach((row) => reportCountMap.set(row.lab_order_id as string, (reportCountMap.get(row.lab_order_id as string) ?? 0) + 1));
 
   return orders.map((order) => ({
     ...order,
@@ -200,18 +198,23 @@ export async function getLabWorkflow(labOrderId: string, clinicId: string): Prom
   };
 }
 
-async function replaceResults(reportId: string, results: Array<Omit<LabComponentResult, "id" | "reportId">>) {
+async function replaceResults(reportId: string, context: { patientId: string; clinicId: string; testName: string; reportDate: string }, results: Array<Omit<LabComponentResult, "id" | "reportId">>) {
   const supabase = createSupabaseAdminClient();
   await supabase.from("lab_results").delete().eq("report_id", reportId);
   if (results.length === 0) return;
   await supabase.from("lab_results").insert(results.map((item) => ({
     id: randomUUID(),
     report_id: reportId,
+    patient_id: context.patientId,
+    clinic_id: context.clinicId,
+    test_name: context.testName,
+    result: item.value,
     test_component: item.testComponent,
     value: item.value,
     reference_range: item.referenceRange,
     unit: item.unit,
-    flag: item.flag
+    flag: item.flag,
+    collected_at: context.reportDate
   })));
 }
 
@@ -250,7 +253,7 @@ export async function createLabWorkflow(input: {
       abnormal_flag: input.report.abnormalFlag,
       file_url: input.report.fileUrl
     }, { onConflict: "lab_order_id" });
-    await replaceResults(reportId, input.results);
+    await replaceResults(reportId, { patientId: input.patientId, clinicId: input.clinicId, testName: input.testName, reportDate: input.report.reportDate }, input.results);
   }
 
   return getLabWorkflow(labOrderId, input.clinicId);
@@ -288,7 +291,7 @@ export async function updateLabWorkflow(labOrderId: string, clinicId: string, in
       abnormal_flag: input.report.abnormalFlag,
       file_url: input.report.fileUrl
     }, { onConflict: "lab_order_id" });
-    await replaceResults(reportId, input.results);
+    await replaceResults(reportId, { patientId: input.patientId, clinicId, testName: input.testName, reportDate: input.report.reportDate }, input.results);
   }
 
   return getLabWorkflow(labOrderId, clinicId);

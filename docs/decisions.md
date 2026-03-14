@@ -41,13 +41,21 @@ The SQL migration enables RLS on all domain tables and defines policies based on
 
 `supabase/migrations/0002_patient_search_and_history.sql` remains the current standalone bootstrap for the original MedFlow schema. `supabase/migrations/0003_must_have_features.sql` is now the additive migration that expands the schema to cover must-have workflows.
 
+### Migration Compatibility Pattern For Policies
+
+For cross-version Supabase/PostgreSQL compatibility, policy migrations use `drop policy if exists ...` followed by `create policy ...` instead of relying on `create policy if not exists`.
+
+### Qualified Column References In Backfill Updates
+
+Migration backfills that use `update ... from ...` must fully qualify target table columns (for example `public.audit_logs.created_at`) to avoid ambiguous-column errors across SQL engines and parser settings.
+
 ### Trigger-Maintained Patient Search Fields
 
 Patient search text and allergy search text are stored in regular columns maintained by a `before insert or update` trigger. This preserves indexed search behavior while avoiding PostgreSQL generated-column immutability limits on array-to-text transformations.
 
 ### Seeded Demo Clinic Strategy
 
-The repository includes an idempotent seed script that creates a reusable demo clinic with fixed emails, linked records, and stable IDs. This supports local development, demos, and quick environment setup.
+The repository includes an idempotent seed script that creates a reusable demo clinic with fixed emails, linked records, and stable IDs across both baseline and must-have workflow tables. This supports local development, demos, and quick environment setup.
 
 ### Documentation-Based Context System
 

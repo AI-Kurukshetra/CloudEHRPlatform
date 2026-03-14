@@ -55,7 +55,6 @@ The project is in a feature-complete must-have workflow stage for the current EH
 
 ## What Remains
 
-- Seed coverage for the new encounter, billing, immunization, and lab workflow tables
 - Document management UI
 - Telehealth module
 - Automated tests
@@ -67,3 +66,4 @@ The project is in a feature-complete must-have workflow stage for the current EH
 - Production build passes
 - The app builds with the new must-have pages, APIs, and client workflow components in place
 - Applying `0002_patient_search_and_history.sql` followed by `0003_must_have_features.sql` is now the documented schema path for fresh environments
+- Seed data now covers encounters, clinical notes, diagnoses, procedures, lab orders/reports, billing claims/items, payments, and immunizations

@@ -131,8 +131,8 @@ alter table if exists public.audit_logs
   add column if not exists created_at timestamptz not null default now();
 
 update public.audit_logs
-set created_at = coalesce(created_at, timestamp),
-    clinic_id = coalesce(clinic_id, public.users.clinic_id)
+set created_at = coalesce(public.audit_logs.created_at, public.audit_logs.timestamp),
+    clinic_id = coalesce(public.audit_logs.clinic_id, public.users.clinic_id)
 from public.users
 where public.users.id = public.audit_logs.user_id;
 
@@ -163,7 +163,8 @@ alter table public.billing_items enable row level security;
 alter table public.payments enable row level security;
 alter table public.immunizations enable row level security;
 
-create policy if not exists "clinic users can read encounters"
+drop policy if exists "clinic users can read encounters" on public.encounters;
+create policy "clinic users can read encounters"
 on public.encounters
 for select
 using (
@@ -178,13 +179,15 @@ using (
   )
 );
 
-create policy if not exists "clinicians can manage encounters"
+drop policy if exists "clinicians can manage encounters" on public.encounters;
+create policy "clinicians can manage encounters"
 on public.encounters
 for all
 using (clinic_id = public.current_clinic_id() and public.current_user_role() in ('admin', 'doctor'))
 with check (clinic_id = public.current_clinic_id() and public.current_user_role() in ('admin', 'doctor'));
 
-create policy if not exists "clinic users can read clinical notes"
+drop policy if exists "clinic users can read clinical notes" on public.clinical_notes;
+create policy "clinic users can read clinical notes"
 on public.clinical_notes
 for select
 using (
@@ -202,7 +205,8 @@ using (
   )
 );
 
-create policy if not exists "clinicians can manage clinical notes"
+drop policy if exists "clinicians can manage clinical notes" on public.clinical_notes;
+create policy "clinicians can manage clinical notes"
 on public.clinical_notes
 for all
 using (
@@ -222,7 +226,8 @@ with check (
   )
 );
 
-create policy if not exists "clinic users can read diagnoses"
+drop policy if exists "clinic users can read diagnoses" on public.diagnoses;
+create policy "clinic users can read diagnoses"
 on public.diagnoses
 for select
 using (
@@ -240,7 +245,8 @@ using (
   )
 );
 
-create policy if not exists "clinicians can manage diagnoses"
+drop policy if exists "clinicians can manage diagnoses" on public.diagnoses;
+create policy "clinicians can manage diagnoses"
 on public.diagnoses
 for all
 using (
@@ -260,7 +266,8 @@ with check (
   )
 );
 
-create policy if not exists "clinic users can read procedures"
+drop policy if exists "clinic users can read procedures" on public.procedures;
+create policy "clinic users can read procedures"
 on public.procedures
 for select
 using (
@@ -278,7 +285,8 @@ using (
   )
 );
 
-create policy if not exists "clinicians can manage procedures"
+drop policy if exists "clinicians can manage procedures" on public.procedures;
+create policy "clinicians can manage procedures"
 on public.procedures
 for all
 using (
@@ -298,7 +306,8 @@ with check (
   )
 );
 
-create policy if not exists "clinic users can read lab orders"
+drop policy if exists "clinic users can read lab orders" on public.lab_orders;
+create policy "clinic users can read lab orders"
 on public.lab_orders
 for select
 using (
@@ -313,13 +322,15 @@ using (
   )
 );
 
-create policy if not exists "clinicians can manage lab orders"
+drop policy if exists "clinicians can manage lab orders" on public.lab_orders;
+create policy "clinicians can manage lab orders"
 on public.lab_orders
 for all
 using (clinic_id = public.current_clinic_id() and public.current_user_role() in ('admin', 'doctor'))
 with check (clinic_id = public.current_clinic_id() and public.current_user_role() in ('admin', 'doctor'));
 
-create policy if not exists "clinic users can read lab reports"
+drop policy if exists "clinic users can read lab reports" on public.lab_reports;
+create policy "clinic users can read lab reports"
 on public.lab_reports
 for select
 using (
@@ -337,7 +348,8 @@ using (
   )
 );
 
-create policy if not exists "clinicians can manage lab reports"
+drop policy if exists "clinicians can manage lab reports" on public.lab_reports;
+create policy "clinicians can manage lab reports"
 on public.lab_reports
 for all
 using (
@@ -357,18 +369,21 @@ with check (
   )
 );
 
-create policy if not exists "clinic users can read billing claims"
+drop policy if exists "clinic users can read billing claims" on public.billing_claims;
+create policy "clinic users can read billing claims"
 on public.billing_claims
 for select
 using (clinic_id = public.current_clinic_id() and public.current_user_role() in ('admin', 'doctor', 'staff'));
 
-create policy if not exists "staff can manage billing claims"
+drop policy if exists "staff can manage billing claims" on public.billing_claims;
+create policy "staff can manage billing claims"
 on public.billing_claims
 for all
 using (clinic_id = public.current_clinic_id() and public.current_user_role() in ('admin', 'staff'))
 with check (clinic_id = public.current_clinic_id() and public.current_user_role() in ('admin', 'staff'));
 
-create policy if not exists "clinic users can read billing items"
+drop policy if exists "clinic users can read billing items" on public.billing_items;
+create policy "clinic users can read billing items"
 on public.billing_items
 for select
 using (
@@ -380,7 +395,8 @@ using (
   )
 );
 
-create policy if not exists "staff can manage billing items"
+drop policy if exists "staff can manage billing items" on public.billing_items;
+create policy "staff can manage billing items"
 on public.billing_items
 for all
 using (
@@ -400,7 +416,8 @@ with check (
   )
 );
 
-create policy if not exists "clinic users can read payments"
+drop policy if exists "clinic users can read payments" on public.payments;
+create policy "clinic users can read payments"
 on public.payments
 for select
 using (
@@ -412,7 +429,8 @@ using (
   )
 );
 
-create policy if not exists "staff can manage payments"
+drop policy if exists "staff can manage payments" on public.payments;
+create policy "staff can manage payments"
 on public.payments
 for all
 using (
@@ -432,7 +450,8 @@ with check (
   )
 );
 
-create policy if not exists "clinic users can read immunizations"
+drop policy if exists "clinic users can read immunizations" on public.immunizations;
+create policy "clinic users can read immunizations"
 on public.immunizations
 for select
 using (
@@ -447,7 +466,8 @@ using (
   )
 );
 
-create policy if not exists "clinicians can manage immunizations"
+drop policy if exists "clinicians can manage immunizations" on public.immunizations;
+create policy "clinicians can manage immunizations"
 on public.immunizations
 for all
 using (clinic_id = public.current_clinic_id() and public.current_user_role() in ('admin', 'doctor'))

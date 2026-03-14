@@ -1,4 +1,4 @@
-﻿import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
@@ -46,7 +46,9 @@ const supabase = createClient(supabaseUrl, serviceKey, {
 
 const clinic = {
   id: "clinic-northstar",
-  name: "Northstar Family Health"
+  name: "Northstar Family Health",
+  address: "1250 Harbor View Drive, Seattle, WA 98101",
+  phone: "555-010-9000"
 };
 
 const userSeeds = [
@@ -387,6 +389,54 @@ const generatedMedicalRecords = generatedPatients.slice(0, 18).map((patient, ind
   }
 }));
 
+const encounterSeeds = [
+  {
+    id: "f2458ab2-8530-49d9-8db9-46e2f034fd3b",
+    patientKey: "patient_1",
+    providerId: "5df92f58-7de2-4501-a4ae-71b8d64b1d06",
+    appointmentId: appointmentSeeds[0].id,
+    visitReason: "Diabetes follow-up and medication review",
+    status: "completed",
+    createdAt: "2026-03-15T15:20:00.000Z"
+  },
+  {
+    id: "f1dc1780-cda4-4ea8-8f9b-b193935f24f0",
+    patientKey: "patient_2",
+    providerId: "15caf2e0-1556-4f4d-bf78-a25dca855f16",
+    appointmentId: appointmentSeeds[1].id,
+    visitReason: "Annual preventive exam",
+    status: "in_progress",
+    createdAt: "2026-03-16T17:45:00.000Z"
+  },
+  {
+    id: "d53f0d6e-8ab7-4620-b1e8-99812b739f2d",
+    patientKey: "patient_3",
+    providerId: "15caf2e0-1556-4f4d-bf78-a25dca855f16",
+    appointmentId: appointmentSeeds[2].id,
+    visitReason: "Asthma symptom control check",
+    status: "completed",
+    createdAt: "2026-03-17T11:15:00.000Z"
+  }
+];
+
+const generatedEncounters = generatedAppointments.slice(0, 24).map((appointment, index) => {
+  const computedStatus = appointment.status === "completed"
+    ? "completed"
+    : index % 2 === 0
+      ? "in_progress"
+      : "draft";
+
+  return {
+    id: seededUuid("00000060", index),
+    patientKey: appointment.patientKey,
+    providerId: appointment.providerId,
+    appointmentId: appointment.id,
+    visitReason: appointment.reason,
+    status: computedStatus,
+    createdAt: seededTimestamp(index, 2)
+  };
+});
+
 async function assertSchemaExists() {
   const { error } = await supabase.from("clinics").select("id").limit(1);
   if (!error) {
@@ -395,6 +445,19 @@ async function assertSchemaExists() {
 
   if (String(error.message || "").includes("Could not find the table") || error.code === "PGRST205") {
     throw new Error("Supabase schema is not initialized. Run the SQL files in supabase/migrations in order in the Supabase SQL editor first.");
+  }
+
+  throw error;
+}
+
+async function assertMustHaveSchemaExists() {
+  const { error } = await supabase.from("encounters").select("id").limit(1);
+  if (!error) {
+    return;
+  }
+
+  if (String(error.message || "").includes("Could not find the table") || error.code === "PGRST205") {
+    throw new Error("Must-have schema is not initialized. Run supabase/migrations/0003_must_have_features.sql in the Supabase SQL editor first.");
   }
 
   throw error;
@@ -467,6 +530,7 @@ async function ensureAuthUser(seed, existingUserMap) {
 
 async function main() {
   await assertSchemaExists();
+  await assertMustHaveSchemaExists();
 
   const authUsers = await listAllAuthUsers();
   const existingUserMap = new Map(authUsers.map((user) => [String(user.email || "").toLowerCase(), user]));
@@ -479,7 +543,9 @@ async function main() {
 
   const { error: clinicError } = await supabase.from("clinics").upsert({
     id: clinic.id,
-    name: clinic.name
+    name: clinic.name,
+    address: clinic.address,
+    phone: clinic.phone
   }, { onConflict: "id" });
   if (clinicError) {
     throw clinicError;
@@ -604,6 +670,153 @@ async function main() {
     throw appointmentsError;
   }
 
+  const allEncounterSeeds = [...encounterSeeds, ...generatedEncounters];
+  const patientSnapshotByKey = new Map([
+    ...userSeeds
+      .filter((seed) => seed.patient)
+      .map((seed) => [seed.key, seed.patient]),
+    ...generatedPatients.map((patient) => [patient.key, patient])
+  ]);
+
+  const encounterRows = allEncounterSeeds.map((seed) => ({
+    id: seed.id,
+    patient_id: patientIdsByKey.get(seed.patientKey),
+    provider_id: seed.providerId,
+    clinic_id: clinic.id,
+    appointment_id: seed.appointmentId ?? null,
+    visit_reason: seed.visitReason,
+    status: seed.status,
+    created_at: seed.createdAt
+  }));
+
+  const { error: encountersError } = await supabase.from("encounters").upsert(encounterRows, { onConflict: "id" });
+  if (encountersError) {
+    throw encountersError;
+  }
+
+  const clinicalNoteRows = allEncounterSeeds.map((seed, index) => {
+    const patient = patientSnapshotByKey.get(seed.patientKey);
+    const fullName = patient ? `${patient.firstName} ${patient.lastName}` : "Patient";
+    return {
+      id: seededUuid("00000061", index),
+      encounter_id: seed.id,
+      subjective: `${fullName} reports stable symptoms with no acute concerns today.`,
+      objective: "Vitals reviewed. Physical exam findings are documented as stable for current condition.",
+      assessment: patient?.diagnoses?.[0] ?? "General follow-up encounter.",
+      plan: "Continue current care plan, reinforce adherence, and return for routine follow-up.",
+      updated_at: seededTimestamp(index, 3)
+    };
+  });
+
+  const { error: clinicalNotesError } = await supabase.from("clinical_notes").upsert(clinicalNoteRows, { onConflict: "encounter_id" });
+  if (clinicalNotesError) {
+    throw clinicalNotesError;
+  }
+
+  const diagnosisRows = [];
+  let diagnosisIndex = 0;
+  for (const [index, seed] of allEncounterSeeds.entries()) {
+    const patient = patientSnapshotByKey.get(seed.patientKey);
+    diagnosisRows.push({
+      id: seededUuid("00000062", diagnosisIndex++),
+      encounter_id: seed.id,
+      icd10_code: `Z09.${String((index % 9) + 1)}`,
+      diagnosis_name: patient?.diagnoses?.[0] ?? "Routine follow-up",
+      notes: "Primary diagnosis captured for encounter coding."
+    });
+
+    if (index % 4 === 0) {
+      diagnosisRows.push({
+        id: seededUuid("00000062", diagnosisIndex++),
+        encounter_id: seed.id,
+        icd10_code: `R53.${String((index % 5) + 1)}`,
+        diagnosis_name: "Fatigue, unspecified",
+        notes: "Additional symptom code documented for clinical context."
+      });
+    }
+  }
+
+  const { error: diagnosesError } = await supabase.from("diagnoses").upsert(diagnosisRows, { onConflict: "id" });
+  if (diagnosesError) {
+    throw diagnosesError;
+  }
+
+  const procedureRows = [];
+  let procedureIndex = 0;
+  for (const [index, seed] of allEncounterSeeds.entries()) {
+    procedureRows.push({
+      id: seededUuid("00000063", procedureIndex++),
+      encounter_id: seed.id,
+      cpt_code: index % 2 === 0 ? "99213" : "99214",
+      procedure_name: index % 2 === 0 ? "Established patient office visit, low complexity" : "Established patient office visit, moderate complexity",
+      notes: "Visit-level E/M coding captured from encounter documentation."
+    });
+
+    if (index % 3 === 0) {
+      procedureRows.push({
+        id: seededUuid("00000063", procedureIndex++),
+        encounter_id: seed.id,
+        cpt_code: "36415",
+        procedure_name: "Collection of venous blood by venipuncture",
+        notes: "Associated lab draw documented during visit."
+      });
+    }
+  }
+
+  const { error: proceduresError } = await supabase.from("procedures").upsert(procedureRows, { onConflict: "id" });
+  if (proceduresError) {
+    throw proceduresError;
+  }
+
+  const labOrderRows = allEncounterSeeds.slice(0, 16).map((seed, index) => ({
+    id: seededUuid("00000064", index),
+    patient_id: patientIdsByKey.get(seed.patientKey),
+    provider_id: seed.providerId,
+    clinic_id: clinic.id,
+    encounter_id: seed.id,
+    test_name: index % 3 === 0 ? "Comprehensive Metabolic Panel" : index % 3 === 1 ? "Lipid Panel" : "Hemoglobin A1C",
+    lab_name: "Northstar Reference Lab",
+    status: index % 5 === 0 ? "reviewed" : index % 2 === 0 ? "reported" : "ordered",
+    ordered_at: seededTimestamp(index, 3)
+  }));
+
+  const { error: labOrdersError } = await supabase.from("lab_orders").upsert(labOrderRows, { onConflict: "id" });
+  if (labOrdersError) {
+    throw labOrdersError;
+  }
+
+  const labReportRows = labOrderRows
+    .filter((order) => order.status === "reported" || order.status === "reviewed")
+    .map((order, index) => ({
+      id: seededUuid("00000065", index),
+      lab_order_id: order.id,
+      report_number: `RPT-2026-${String(index + 1).padStart(5, "0")}`,
+      report_date: seededTimestamp(index, 3),
+      result_summary: `Results finalized for ${order.test_name}.`,
+      abnormal_flag: index % 4 === 0,
+      file_url: `lab-reports/${order.id}.pdf`
+    }));
+
+  const { error: labReportsError } = await supabase.from("lab_reports").upsert(labReportRows, { onConflict: "id" });
+  if (labReportsError) {
+    throw labReportsError;
+  }
+
+  const labRows = [...labSeeds, ...generatedLabs].map((seed, index) => ({
+    id: seed.id,
+    patient_id: patientIdsByKey.get(seed.patientKey),
+    clinic_id: clinic.id,
+    test_name: seed.testName,
+    result: seed.result,
+    flag: seed.flag,
+    collected_at: seed.collectedAt,
+    report_id: labReportRows[index] ? labReportRows[index].id : null,
+    test_component: seed.testName,
+    value: seed.result,
+    reference_range: index % 3 === 0 ? "Normal reference range varies by age and sex" : "",
+    unit: seed.result.includes("%") ? "%" : seed.result.includes("mg/dL") ? "mg/dL" : ""
+  }));
+
   const prescriptionRows = [...prescriptionSeeds, ...generatedPrescriptions].map((seed) => ({
     id: seed.id,
     patient_id: patientIdsByKey.get(seed.patientKey),
@@ -621,19 +834,90 @@ async function main() {
     throw prescriptionsError;
   }
 
-  const labRows = [...labSeeds, ...generatedLabs].map((seed) => ({
-    id: seed.id,
-    patient_id: patientIdsByKey.get(seed.patientKey),
-    clinic_id: clinic.id,
-    test_name: seed.testName,
-    result: seed.result,
-    flag: seed.flag,
-    collected_at: seed.collectedAt
-  }));
-
   const { error: labsError } = await supabase.from("lab_results").upsert(labRows, { onConflict: "id" });
   if (labsError) {
     throw labsError;
+  }
+
+  const completedEncounterRows = encounterRows.filter((row) => row.status === "completed").slice(0, 12);
+  const billingClaimRows = completedEncounterRows.map((row, index) => {
+    const claimStatus = index % 4 === 0 ? "paid" : index % 4 === 1 ? "partially_paid" : index % 4 === 2 ? "submitted" : "draft";
+    return {
+      id: seededUuid("00000066", index),
+      patient_id: row.patient_id,
+      encounter_id: row.id,
+      provider_id: row.provider_id,
+      clinic_id: clinic.id,
+      claim_number: `CLM-2026-${String(index + 1).padStart(6, "0")}`,
+      status: claimStatus,
+      total_amount: index % 2 === 0 ? 210.0 : 325.0,
+      submitted_at: claimStatus === "draft" ? null : seededTimestamp(index, 3)
+    };
+  });
+
+  const { error: billingClaimsError } = await supabase.from("billing_claims").upsert(billingClaimRows, { onConflict: "id" });
+  if (billingClaimsError) {
+    throw billingClaimsError;
+  }
+
+  const billingItemRows = billingClaimRows.flatMap((claim, index) => {
+    const baseAmount = index % 2 === 0 ? 140.0 : 215.0;
+    const rows = [
+      {
+        id: seededUuid("00000067", index * 2),
+        claim_id: claim.id,
+        cpt_code: "99213",
+        description: "Established patient office/outpatient visit",
+        amount: baseAmount
+      },
+      {
+        id: seededUuid("00000067", index * 2 + 1),
+        claim_id: claim.id,
+        cpt_code: "36415",
+        description: "Collection of venous blood by venipuncture",
+        amount: claim.total_amount - baseAmount
+      }
+    ];
+    return rows;
+  });
+
+  const { error: billingItemsError } = await supabase.from("billing_items").upsert(billingItemRows, { onConflict: "id" });
+  if (billingItemsError) {
+    throw billingItemsError;
+  }
+
+  const paymentRows = billingClaimRows
+    .filter((claim) => claim.status === "paid" || claim.status === "partially_paid")
+    .map((claim, index) => ({
+      id: seededUuid("00000068", index),
+      claim_id: claim.id,
+      payment_method: index % 2 === 0 ? "insurance" : "card",
+      amount: claim.status === "paid" ? claim.total_amount : Number((claim.total_amount * 0.6).toFixed(2)),
+      payment_date: seededTimestamp(index, 4)
+    }));
+
+  const { error: paymentsError } = await supabase.from("payments").upsert(paymentRows, { onConflict: "id" });
+  if (paymentsError) {
+    throw paymentsError;
+  }
+
+  const immunizationPatientKeys = [...new Set([...allEncounterSeeds.map((seed) => seed.patientKey), ...generatedPatients.slice(0, 18).map((patient) => patient.key)])];
+  const immunizationRows = immunizationPatientKeys.map((patientKey, index) => ({
+    id: seededUuid("00000069", index),
+    patient_id: patientIdsByKey.get(patientKey),
+    clinic_id: clinic.id,
+    vaccine_name: index % 3 === 0 ? "Influenza (Inactivated)" : index % 3 === 1 ? "Tdap" : "COVID-19 mRNA Booster",
+    dose_number: index % 2 === 0 ? 1 : 2,
+    date_administered: `2025-${String((index % 12) + 1).padStart(2, "0")}-${String((index % 27) + 1).padStart(2, "0")}`,
+    provider_id: providerSeeds[index % providerSeeds.length].id,
+    lot_number: `LOT-${String(10000 + index).padStart(5, "0")}`,
+    notes: "Seeded immunization record for timeline and due-date workflows.",
+    next_due_date: index % 2 === 0 ? `2026-${String((index % 12) + 1).padStart(2, "0")}-${String((index % 27) + 1).padStart(2, "0")}` : null
+  }));
+
+  const { error: immunizationsError } = await supabase.from("immunizations").upsert(immunizationRows, { onConflict: "id" });
+  if (immunizationsError) {
+    throw immunizationsError;
   }
 
   const medicalRecordRows = [...medicalRecordSeeds, ...generatedMedicalRecords].map((seed) => ({
@@ -650,11 +934,16 @@ async function main() {
     throw recordsError;
   }
 
-  const auditRows = auditLogSeeds.map((seed) => ({
+  const auditRows = auditLogSeeds.map((seed, index) => ({
     id: seed.id,
     user_id: authByKey.get(seed.userKey).id,
     action: seed.action,
-    timestamp: seed.timestamp
+    timestamp: seed.timestamp,
+    clinic_id: clinic.id,
+    entity_type: "seed",
+    entity_id: seededUuid("0000006a", index),
+    changes: { source: "seed-script", action: seed.action },
+    created_at: seed.timestamp
   }));
 
   const { error: auditError } = await supabase.from("audit_logs").upsert(auditRows, { onConflict: "id" });
@@ -673,8 +962,18 @@ async function main() {
   console.log(`- ${providerRows.length} providers`);
   console.log(`- ${patientRows.length} patients`);
   console.log(`- ${appointmentRows.length} appointments`);
+  console.log(`- ${encounterRows.length} encounters`);
+  console.log(`- ${clinicalNoteRows.length} clinical notes`);
+  console.log(`- ${diagnosisRows.length} diagnoses`);
+  console.log(`- ${procedureRows.length} procedures`);
   console.log(`- ${prescriptionRows.length} prescriptions`);
+  console.log(`- ${labOrderRows.length} lab orders`);
+  console.log(`- ${labReportRows.length} lab reports`);
   console.log(`- ${labRows.length} lab results`);
+  console.log(`- ${billingClaimRows.length} billing claims`);
+  console.log(`- ${billingItemRows.length} billing items`);
+  console.log(`- ${paymentRows.length} payments`);
+  console.log(`- ${immunizationRows.length} immunizations`);
   console.log(`- ${medicalRecordRows.length} medical records`);
   console.log(`- ${auditRows.length} audit logs`);
 }

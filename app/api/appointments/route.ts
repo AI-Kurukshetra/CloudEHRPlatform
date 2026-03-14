@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
 import { readRequestBody, wantsJson } from "@/lib/http";
-import { createAppointment, listAppointments, logAuditAction } from "@/lib/repositories";
-import { appointmentSchema } from "@/lib/schemas";
+import { listAppointmentsPage } from "@/lib/query-repositories";
+import { createAppointment, logAuditAction } from "@/lib/repositories";
+import { appointmentFiltersSchema, appointmentSchema } from "@/lib/schemas";
 
 function normalizeAppointmentTime(value: unknown) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -19,19 +20,26 @@ function errorResponse(request: Request, redirectTo: string, message: string, st
     : NextResponse.redirect(new URL(`${redirectTo}?error=${encodeURIComponent(message)}`, request.url), { status: 303 });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getSessionUser();
 
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const appointments = await listAppointments(session.clinicId, {
-    patientId: session.role === "patient" ? session.patientId ?? undefined : undefined,
-    providerId: session.role === "doctor" ? session.providerId ?? undefined : undefined
+  const searchParams = Object.fromEntries(new URL(request.url).searchParams.entries());
+  const parsed = appointmentFiltersSchema.safeParse({
+    ...searchParams,
+    patientId: session.role === "patient" ? session.patientId ?? undefined : searchParams.patientId,
+    providerId: session.role === "doctor" ? session.providerId ?? undefined : searchParams.providerId
   });
 
-  return NextResponse.json({ data: appointments });
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid query parameters." }, { status: 400 });
+  }
+
+  const appointments = await listAppointmentsPage(session.clinicId, parsed.data);
+  return NextResponse.json(appointments);
 }
 
 export async function POST(request: Request) {
@@ -73,3 +81,4 @@ export async function POST(request: Request) {
     return errorResponse(request, redirectTo, error instanceof Error ? error.message : "Unable to create appointment.", 500);
   }
 }
+

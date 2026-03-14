@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from "node:fs";
+﻿import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
@@ -96,9 +96,11 @@ const userSeeds = [
       gender: "female",
       phone: "5550101122",
       insuranceId: "AET-4439201",
+      guardianName: "Nina Baker",
       allergies: ["Penicillin"],
       medications: ["Metformin 500mg"],
-      diagnoses: ["Type 2 diabetes"]
+      diagnoses: ["Type 2 diabetes"],
+      pastMedicalHistory: "<p>History of gestational diabetes in 2018.</p><ul><li>Laparoscopic cholecystectomy in 2016</li><li>Long-term metformin use since 2023</li></ul>"
     }
   },
   {
@@ -115,9 +117,11 @@ const userSeeds = [
       gender: "male",
       phone: "5550113355",
       insuranceId: "BCBS-9003312",
+      guardianName: "",
       allergies: ["Latex"],
       medications: ["Lisinopril 10mg"],
-      diagnoses: ["Hypertension"]
+      diagnoses: ["Hypertension"],
+      pastMedicalHistory: "<p>Remote left ankle fracture repaired in 2008.</p><p>Chronic hypertension controlled with ACE inhibitor therapy.</p>"
     }
   },
   {
@@ -134,9 +138,11 @@ const userSeeds = [
       gender: "female",
       phone: "5550127841",
       insuranceId: "UHC-7812240",
+      guardianName: "Samira Rahman",
       allergies: [],
       medications: ["Albuterol inhaler"],
-      diagnoses: ["Mild persistent asthma"]
+      diagnoses: ["Mild persistent asthma"],
+      pastMedicalHistory: "<p>Childhood asthma with intermittent exacerbations.</p><ul><li>No surgeries</li><li>Uses rescue inhaler during seasonal flares</li></ul>"
     }
   }
 ];
@@ -280,6 +286,106 @@ const auditLogSeeds = [
     timestamp: "2026-03-11T11:00:00.000Z"
   }
 ];
+const generatedPatientCount = 72;
+const firstNames = ["Aarav", "Anaya", "Riya", "Kabir", "Mira", "Ishaan", "Leena", "Noah", "Diya", "Rehan", "Sana", "Kiran"];
+const lastNames = ["Sharma", "Patel", "Reddy", "Thomas", "Brooks", "Das", "Carter", "Fernandez", "Khan", "Mehta", "Roy", "Miller"];
+const allergiesPool = ["Peanuts", "Shellfish", "Penicillin", "Dust", "Latex", "Pollen", "None"];
+const diagnosesPool = ["Hypertension", "Type 2 diabetes", "Migraine", "Hypothyroidism", "Asthma", "Arthritis"];
+const medicationPool = ["Metformin 500mg", "Lisinopril 10mg", "Levothyroxine 75mcg", "Vitamin D3", "Atorvastatin 20mg", "Albuterol inhaler"];
+const historyTemplates = [
+  "<p>Open reduction and internal fixation after wrist fracture in 2019.</p><p>Completed six months of physiotherapy and now has full range of motion.</p>",
+  "<p>Appendectomy performed in 2014 without complications.</p><ul><li>Seasonal allergic rhinitis</li><li>Uses cetirizine during spring months</li></ul>",
+  "<p>Long-term hypertension monitored since 2020.</p><p>Home blood pressure log reviewed quarterly.</p>",
+  "<p>History of asthma since childhood.</p><ul><li>No prior ICU admissions</li><li>Uses rescue inhaler during viral illnesses</li></ul>",
+  "<p>Remote meniscus repair in 2017.</p><p>Intermittent knee pain with prolonged standing.</p>",
+  "<p>Gestational diabetes in prior pregnancy.</p><p>Ongoing annual metabolic screening recommended.</p>"
+];
+
+function seededUuid(prefix, index) {
+  return `${prefix}-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
+}
+
+function seededDate(index) {
+  const year = 1958 + (index % 55);
+  const month = String((index % 12) + 1).padStart(2, "0");
+  const day = String((index % 27) + 1).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function seededTimestamp(index, monthOffset = 0) {
+  const day = String((index % 27) + 1).padStart(2, "0");
+  const hour = String(8 + (index % 9)).padStart(2, "0");
+  return `2026-${String(1 + monthOffset).padStart(2, "0")}-${day}T${hour}:00:00.000Z`;
+}
+
+const generatedPatients = Array.from({ length: generatedPatientCount }, (_, index) => {
+  const firstName = firstNames[index % firstNames.length];
+  const lastName = `${lastNames[index % lastNames.length]} ${String.fromCharCode(65 + (index % 4))}`;
+  const gender = index % 3 === 0 ? "female" : index % 3 === 1 ? "male" : "other";
+  const allergy = allergiesPool[index % allergiesPool.length];
+  const diagnosis = diagnosesPool[index % diagnosesPool.length];
+  const medication = medicationPool[index % medicationPool.length];
+  const isMinor = index % 9 === 0;
+
+  return {
+    key: `generated_patient_${index + 1}`,
+    id: seededUuid("00000010", index),
+    firstName,
+    lastName,
+    dob: seededDate(index),
+    gender,
+    guardianName: isMinor ? `${lastNames[(index + 3) % lastNames.length]} Guardian` : "",
+    phone: `55502${String(index + 1).padStart(5, "0")}`,
+    email: `${firstName.toLowerCase()}.${lastName.toLowerCase().replace(/\s+/g, "-")}@seed.medflow.dev`,
+    insuranceId: `NFH-${String(index + 1000).padStart(6, "0")}`,
+    allergies: allergy === "None" ? [] : [allergy],
+    medications: [medication],
+    diagnoses: [diagnosis],
+    pastMedicalHistory: historyTemplates[index % historyTemplates.length]
+  };
+});
+
+const generatedAppointments = generatedPatients.slice(0, 48).map((patient, index) => ({
+  id: seededUuid("00000020", index),
+  patientKey: patient.key,
+  providerId: providerSeeds[index % providerSeeds.length].id,
+  appointmentTime: seededTimestamp(index, 2),
+  durationMinutes: index % 4 === 0 ? 45 : 30,
+  status: index % 5 === 0 ? "completed" : "scheduled",
+  reason: index % 2 === 0 ? "Chronic care review" : "Preventive follow-up",
+  notes: `Generated schedule slot for ${patient.firstName} ${patient.lastName}.`
+}));
+
+const generatedPrescriptions = generatedPatients.filter((_, index) => index % 3 === 0).map((patient, index) => ({
+  id: seededUuid("00000030", index),
+  patientKey: patient.key,
+  providerId: providerSeeds[index % providerSeeds.length].id,
+  drugName: medicationPool[index % medicationPool.length].split(" ")[0],
+  dosage: index % 2 === 0 ? "10mg" : "500mg",
+  frequency: index % 2 === 0 ? "Once daily" : "Twice daily",
+  duration: index % 4 === 0 ? "90 days" : "30 days",
+  issuedAt: seededTimestamp(index, 1)
+}));
+
+const generatedLabs = generatedPatients.filter((_, index) => index % 2 === 0).map((patient, index) => ({
+  id: seededUuid("00000040", index),
+  patientKey: patient.key,
+  testName: index % 3 === 0 ? "Complete Blood Count" : index % 3 === 1 ? "Lipid Panel" : "Hemoglobin A1C",
+  result: index % 3 === 0 ? "Within normal range" : index % 3 === 1 ? "LDL 118 mg/dL" : "6.9%",
+  flag: index % 4 === 0 ? "abnormal" : "normal",
+  collectedAt: seededTimestamp(index, 0)
+}));
+
+const generatedMedicalRecords = generatedPatients.slice(0, 18).map((patient, index) => ({
+  id: seededUuid("00000050", index),
+  patientKey: patient.key,
+  visitId: generatedAppointments[index]?.id ?? null,
+  recordType: "history_update",
+  data: {
+    summary: patient.pastMedicalHistory,
+    updatedBy: providerSeeds[index % providerSeeds.length].fullName
+  }
+}));
 
 async function assertSchemaExists() {
   const { error } = await supabase.from("clinics").select("id").limit(1);
@@ -288,7 +394,7 @@ async function assertSchemaExists() {
   }
 
   if (String(error.message || "").includes("Could not find the table") || error.code === "PGRST205") {
-    throw new Error("Supabase schema is not initialized. Run supabase/migrations/0001_initial_schema.sql in the Supabase SQL editor first.");
+    throw new Error("Supabase schema is not initialized. Run the SQL files in supabase/migrations in order in the Supabase SQL editor first.");
   }
 
   throw error;
@@ -409,7 +515,7 @@ async function main() {
     throw providersError;
   }
 
-  const patientRows = userSeeds
+  const authPatientRows = userSeeds
     .filter((seed) => seed.patient)
     .map((seed) => ({
       id: seed.patient.id,
@@ -419,20 +525,45 @@ async function main() {
       last_name: seed.patient.lastName,
       dob: seed.patient.dob,
       gender: seed.patient.gender,
+      guardian_name: seed.patient.guardianName,
       phone: seed.patient.phone,
       email: seed.email,
       insurance_id: seed.patient.insuranceId,
       allergies: seed.patient.allergies,
       medications: seed.patient.medications,
-      diagnoses: seed.patient.diagnoses
+      diagnoses: seed.patient.diagnoses,
+      past_medical_history: seed.patient.pastMedicalHistory
     }));
+
+  const generatedPatientRows = generatedPatients.map((patient) => ({
+    id: patient.id,
+    auth_user_id: null,
+    clinic_id: clinic.id,
+    first_name: patient.firstName,
+    last_name: patient.lastName,
+    dob: patient.dob,
+    gender: patient.gender,
+    guardian_name: patient.guardianName,
+    phone: patient.phone,
+    email: patient.email,
+    insurance_id: patient.insuranceId,
+    allergies: patient.allergies,
+    medications: patient.medications,
+    diagnoses: patient.diagnoses,
+    past_medical_history: patient.pastMedicalHistory
+  }));
+
+  const patientRows = [...authPatientRows, ...generatedPatientRows];
 
   const { error: patientsError } = await supabase.from("patients").upsert(patientRows, { onConflict: "id" });
   if (patientsError) {
     throw patientsError;
   }
 
-  const patientIdsByKey = new Map(userSeeds.filter((seed) => seed.patient).map((seed) => [seed.key, seed.patient.id]));
+  const patientIdsByKey = new Map([
+    ...userSeeds.filter((seed) => seed.patient).map((seed) => [seed.key, seed.patient.id]),
+    ...generatedPatients.map((patient) => [patient.key, patient.id])
+  ]);
 
   for (const seed of userSeeds) {
     const authUser = authByKey.get(seed.key);
@@ -456,7 +587,7 @@ async function main() {
     }
   }
 
-  const appointmentRows = appointmentSeeds.map((seed) => ({
+  const appointmentRows = [...appointmentSeeds, ...generatedAppointments].map((seed) => ({
     id: seed.id,
     patient_id: patientIdsByKey.get(seed.patientKey),
     provider_id: seed.providerId,
@@ -473,7 +604,7 @@ async function main() {
     throw appointmentsError;
   }
 
-  const prescriptionRows = prescriptionSeeds.map((seed) => ({
+  const prescriptionRows = [...prescriptionSeeds, ...generatedPrescriptions].map((seed) => ({
     id: seed.id,
     patient_id: patientIdsByKey.get(seed.patientKey),
     provider_id: seed.providerId,
@@ -490,7 +621,7 @@ async function main() {
     throw prescriptionsError;
   }
 
-  const labRows = labSeeds.map((seed) => ({
+  const labRows = [...labSeeds, ...generatedLabs].map((seed) => ({
     id: seed.id,
     patient_id: patientIdsByKey.get(seed.patientKey),
     clinic_id: clinic.id,
@@ -505,7 +636,7 @@ async function main() {
     throw labsError;
   }
 
-  const medicalRecordRows = medicalRecordSeeds.map((seed) => ({
+  const medicalRecordRows = [...medicalRecordSeeds, ...generatedMedicalRecords].map((seed) => ({
     id: seed.id,
     patient_id: patientIdsByKey.get(seed.patientKey),
     visit_id: seed.visitId,
@@ -553,3 +684,8 @@ main().catch((error) => {
   console.error(error instanceof Error ? error.message : error);
   process.exit(1);
 });
+
+
+
+
+

@@ -1,14 +1,37 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
 import { readRequestBody, wantsJson } from "@/lib/http";
+import { listPrescriptionsPage } from "@/lib/query-repositories";
 import { createPrescription, logAuditAction } from "@/lib/repositories";
-import { prescriptionSchema } from "@/lib/schemas";
+import { prescriptionFiltersSchema, prescriptionSchema } from "@/lib/schemas";
 
 function errorResponse(request: Request, redirectTo: string, message: string, status = 400) {
   return wantsJson(request)
     ? NextResponse.json({ error: message }, { status })
     : NextResponse.redirect(new URL(`${redirectTo}?error=${encodeURIComponent(message)}`, request.url), { status: 303 });
+}
+
+export async function GET(request: Request) {
+  const session = await getSessionUser();
+
+  if (!session || !["admin", "doctor", "patient"].includes(session.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const searchParams = Object.fromEntries(new URL(request.url).searchParams.entries());
+  const parsed = prescriptionFiltersSchema.safeParse({
+    ...searchParams,
+    patientId: session.role === "patient" ? session.patientId ?? undefined : searchParams.patientId,
+    providerId: session.role === "doctor" ? session.providerId ?? undefined : searchParams.providerId
+  });
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid query parameters." }, { status: 400 });
+  }
+
+  const prescriptions = await listPrescriptionsPage(session.clinicId, parsed.data);
+  return NextResponse.json(prescriptions);
 }
 
 export async function POST(request: Request) {
@@ -44,3 +67,4 @@ export async function POST(request: Request) {
     return errorResponse(request, redirectTo, error instanceof Error ? error.message : "Unable to create prescription.", 500);
   }
 }
+

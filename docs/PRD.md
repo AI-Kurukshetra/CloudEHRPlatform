@@ -1,4 +1,4 @@
-# Product Requirements Document
+﻿# Product Requirements Document
 
 ## Product Name
 
@@ -25,10 +25,10 @@ Mid-size clinics often rely on fragmented or outdated EHR tooling for patient re
 ### Core Modules Implemented
 
 - Dashboard
-- Patient management list and patient detail views
-- Appointment listing, creation, update, and deletion APIs
-- Prescription listing and creation APIs
-- Lab result viewing
+- Patient management list and patient detail views with paginated search/filter controls and rich-text past medical history editing
+- Appointment listing, creation, update, and deletion APIs with paginated filtering support
+- Prescription listing and creation APIs with paginated filtering support
+- Lab result viewing with paginated filtering support
 - Admin user/provider/audit overview
 - Reporting pages for appointment trends and lightweight revenue summaries
 - Document upload API backed by Supabase Storage
@@ -71,6 +71,8 @@ Can access dashboard, appointments, prescriptions, and labs. Registration create
 
 - Staff and admins can create patients
 - Staff and admins can update patients through API
+- Doctors and admins can document rich-text past medical history on the patient chart
+- Patient directory queries support server-side pagination and indexed search/filter workflows
 - Doctors and staff can view patient charts
 - Patients are linked to auth users through `patients.auth_user_id`
 
@@ -79,15 +81,18 @@ Can access dashboard, appointments, prescriptions, and labs. Registration create
 - Staff, admins, doctors, and linked patients can create appointments
 - Double booking protection is enforced in the repository layer by overlap checks per provider
 - Appointment CRUD APIs exist
+- Appointment list views support server-side pagination and filtering
 
 ### Prescriptions
 
 - Doctors can create prescriptions
 - Admins, doctors, and linked patients can view prescriptions in role scope
+- Prescription list views support server-side pagination and filtering
 
 ### Labs
 
 - Lab result viewing is implemented
+- Lab list views support server-side pagination and filtering
 - Lab creation/import workflows are not yet implemented in the app UI
 
 ### Documents
@@ -110,7 +115,7 @@ The repository does not currently implement:
 - inventory or facility management
 - OAuth providers
 - AI-assisted note generation
-- full clinical documentation authoring UI
+- full clinical documentation authoring UI beyond patient past medical history
 - document management UI
 - production billing analytics
 

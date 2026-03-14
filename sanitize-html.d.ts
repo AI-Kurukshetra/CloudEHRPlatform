@@ -1,0 +1,19 @@
+﻿declare module "sanitize-html" {
+  type TransformAttributes = Record<string, string>;
+
+  type Options = {
+    allowedTags?: string[];
+    allowedAttributes?: Record<string, string[]>;
+    allowedSchemes?: string[];
+    transformTags?: Record<string, unknown>;
+  };
+
+  type SanitizeHtml = {
+    (dirty: string, options?: Options): string;
+    simpleTransform(tagName: string, attribs?: TransformAttributes): unknown;
+  };
+
+  const sanitizeHtml: SanitizeHtml;
+  export default sanitizeHtml;
+}
+

@@ -1,4 +1,4 @@
-# Tasks
+﻿# Tasks
 
 ## Completed
 
@@ -20,6 +20,10 @@
 - [x] Verify application with `npm run typecheck`
 - [x] Verify production build with `npm run build`
 - [x] Update README with product overview, setup, and seeding instructions
+- [x] Add paginated search and filtering for patients, appointments, prescriptions, and lab results
+- [x] Add rich-text past medical history editing to the patient chart with backend persistence
+- [x] Add a Supabase reset SQL script for dropping MedFlow tables and storage buckets before replaying migrations
+- [x] Rewrite `0002_patient_search_and_history.sql` as a standalone full-schema bootstrap migration for clean databases
 
 ## Pending
 
@@ -28,7 +32,7 @@
 - [ ] Replace placeholder revenue reporting with billing-backed analytics and real billing tables
 - [ ] Implement billing and insurance modules from the broader product vision
 - [ ] Implement telehealth workflows and UI
-- [ ] Implement clinical documentation authoring UI for medical records
+- [ ] Implement clinical documentation authoring UI for medical records beyond patient past medical history
 - [ ] Add automated tests for auth flows, repositories, and route handlers
 - [ ] Add observability, error monitoring, and deployment runbook documentation
 - [ ] Add safe seed reset or environment-specific fixture strategies for non-demo environments

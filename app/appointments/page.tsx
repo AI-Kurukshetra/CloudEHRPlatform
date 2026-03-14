@@ -1,9 +1,19 @@
+﻿import Link from "next/link";
+
 import { AppointmentList } from "@/components/appointments/appointment-list";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { AppShell } from "@/components/layout/app-shell";
+import { PaginationControls } from "@/components/pagination-controls";
+import { PatientSearchSelect } from "@/components/patients/patient-search-select";
 import { requireUser } from "@/lib/auth";
-import { listAppointments, listPatients, listProviders } from "@/lib/repositories";
+import { listAppointmentsPage } from "@/lib/query-repositories";
+import { listProviders } from "@/lib/repositories";
+import { appointmentFiltersSchema } from "@/lib/schemas";
+
+function pickParam(value: string | string[] | undefined) {
+  return typeof value === "string" ? value : undefined;
+}
 
 export default async function AppointmentsPage({
   searchParams
@@ -11,33 +21,90 @@ export default async function AppointmentsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireUser(["admin", "doctor", "staff", "patient"]);
-  const [appointments, patients, providers] = await Promise.all([
-    listAppointments(user.clinicId, {
-      patientId: user.role === "patient" ? user.patientId ?? undefined : undefined,
-      providerId: user.role === "doctor" ? user.providerId ?? undefined : undefined
-    }),
-    listPatients(user.clinicId),
+  const params = await searchParams;
+  const parsed = appointmentFiltersSchema.safeParse({
+    search: pickParam(params.search),
+    status: pickParam(params.status),
+    dateFrom: pickParam(params.dateFrom),
+    dateTo: pickParam(params.dateTo),
+    page: pickParam(params.page),
+    limit: pickParam(params.limit) ?? "20",
+    patientId: user.role === "patient" ? user.patientId ?? undefined : undefined,
+    providerId: user.role === "doctor" ? user.providerId ?? undefined : undefined
+  });
+  const filters = parsed.success ? parsed.data : { page: 1, limit: 20 };
+  const [appointments, providers] = await Promise.all([
+    listAppointmentsPage(user.clinicId, filters),
     listProviders(user.clinicId)
   ]);
-  const params = await searchParams;
-  const error = typeof params.error === "string" ? params.error : null;
+  const error = pickParam(params.error);
   const canBookAsPatient = user.role !== "patient" || Boolean(user.patientId);
 
   return (
     <AppShell
       user={user}
       title="Appointment operations"
-      subtitle="Coordinate provider availability, protect against double booking, and keep patients informed."
+      subtitle="Search and page scheduled visits while keeping booking flows usable for large patient directories."
     >
       {error ? <div className="surface border-coral/20 bg-coral/10 p-4 text-sm text-coral">{error}</div> : null}
       <section className="grid gap-4 md:grid-cols-3">
-        <MetricCard label="Scheduled" value={appointments.filter((item) => item.status === "scheduled").length} hint="Visits currently booked and awaiting execution." />
-        <MetricCard label="Providers" value={providers.length} hint="Available clinicians mapped to visit slots." />
-        <MetricCard label="Patients" value={patients.length} hint="Patients actively present in scheduling workflows." />
+        <MetricCard label="Matching visits" value={appointments.pagination.total} hint="Appointments returned for the current server-side filter set." />
+        <MetricCard label="Visible rows" value={appointments.data.length} hint="Appointments currently rendered in the table." />
+        <MetricCard label="Providers" value={providers.length} hint="Available clinicians mapped to scheduling workflows." />
       </section>
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <SectionCard eyebrow="Calendar" title="Appointment list">
-          <AppointmentList appointments={appointments} patients={patients} providers={providers} />
+          <form method="get" className="mb-5 grid gap-3 rounded-[1.2rem] border border-[color:var(--border)] bg-white/60 p-4 md:grid-cols-2 xl:grid-cols-4">
+            <label className="block text-sm text-ink/75 xl:col-span-2">
+              Search
+              <input name="search" defaultValue={filters.search} placeholder="Reason or scheduling notes" />
+            </label>
+            <label className="block text-sm text-ink/75">
+              Status
+              <select name="status" defaultValue={filters.status ?? ""}>
+                <option value="">All statuses</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="checked_in">Checked in</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </label>
+            <label className="block text-sm text-ink/75">
+              Page size
+              <select name="limit" defaultValue={String(filters.limit)}>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+            </label>
+            <label className="block text-sm text-ink/75">
+              From
+              <input name="dateFrom" type="date" defaultValue={filters.dateFrom} />
+            </label>
+            <label className="block text-sm text-ink/75">
+              To
+              <input name="dateTo" type="date" defaultValue={filters.dateTo} />
+            </label>
+            <div className="flex flex-wrap items-end gap-3 md:col-span-2 xl:col-span-4">
+              <button type="submit">Apply filters</button>
+              <Link href="/appointments" className="rounded-full bg-black/5 px-4 py-3 text-sm text-ink">Clear</Link>
+            </div>
+          </form>
+          <AppointmentList appointments={appointments.data} />
+          {appointments.data.length === 0 ? <p className="mt-4 text-sm text-ink/65">No appointments match the current search.</p> : null}
+          <div className="mt-5">
+            <PaginationControls
+              pathname="/appointments"
+              params={{
+                search: filters.search,
+                status: filters.status,
+                dateFrom: filters.dateFrom,
+                dateTo: filters.dateTo,
+                limit: String(filters.limit)
+              }}
+              pagination={appointments.pagination}
+            />
+          </div>
         </SectionCard>
         <SectionCard eyebrow="Booking" title="Create a new appointment">
           {!canBookAsPatient ? (
@@ -51,14 +118,7 @@ export default async function AppointmentsPage({
               {user.role === "patient" ? (
                 <input type="hidden" name="patientId" value={user.patientId ?? ""} />
               ) : (
-                <label className="block text-sm text-ink/75">
-                  Patient
-                  <select name="patientId" defaultValue={patients[0]?.id}>
-                    {patients.map((patient) => (
-                      <option key={patient.id} value={patient.id}>{patient.firstName} {patient.lastName}</option>
-                    ))}
-                  </select>
-                </label>
+                <PatientSearchSelect name="patientId" label="Patient" />
               )}
               <label className="block text-sm text-ink/75">
                 Provider
@@ -87,9 +147,11 @@ export default async function AppointmentsPage({
               <button type="submit">Book appointment</button>
             </form>
           )}
-          <p className="mt-4 text-sm text-ink/65">Server validation enforces duration bounds and rejects provider overlaps in the same slot.</p>
+          <p className="mt-4 text-sm text-ink/65">The booking form now searches patients server-side instead of rendering the entire clinic directory in a dropdown.</p>
         </SectionCard>
       </div>
     </AppShell>
   );
 }
+
+

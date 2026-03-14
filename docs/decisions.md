@@ -1,4 +1,4 @@
-# Decisions
+﻿# Decisions
 
 ## Architecture Decisions
 
@@ -17,7 +17,7 @@ Supabase is the source of truth for:
 
 The app is designed around Supabase Auth metadata plus a public schema linked to `auth.users`.
 
-### Auth Metadata for Role Context
+### Auth Metadata For Role Context
 
 Role, clinic ID, and optional linked `provider_id` or `patient_id` are stored in Supabase Auth app metadata. Middleware and server components use that metadata to determine access scope.
 
@@ -33,9 +33,17 @@ The repository layer currently uses the Supabase service role on the server for 
 
 The public `users` table references `auth.users(id)`. Doctor registration provisions both an auth user and a `providers` row. Patient registration provisions both an auth user and a linked `patients` row.
 
-### RLS as Baseline Security Model
+### RLS As Baseline Security Model
 
 The SQL migration enables RLS on all domain tables and defines policies based on JWT metadata and linked patient ownership. This is the intended baseline authorization model even though much of the current data access is service-role-backed on the server.
+
+### Standalone Bootstrap Migration
+
+`supabase/migrations/0002_patient_search_and_history.sql` is the current source of truth for bootstrapping a clean database. It creates the latest MedFlow schema, indexes, RLS policies, and storage buckets in one pass without requiring earlier migrations.
+
+### Trigger-Maintained Patient Search Fields
+
+Patient search text and allergy search text are stored in regular columns maintained by a `before insert or update` trigger. This preserves indexed search behavior while avoiding PostgreSQL generated-column immutability limits on array-to-text transformations.
 
 ### Seeded Demo Clinic Strategy
 
@@ -44,3 +52,15 @@ The repository includes an idempotent seed script that creates a reusable demo c
 ### Documentation-Based Context System
 
 The `/docs` directory is the project memory and must be updated after work is completed. Future agents should treat `/docs` as the single source of truth for project status, not ad hoc assumptions from older prompts.
+
+### Dedicated Paginated Query Module
+
+List-heavy screens now use `lib/query-repositories.ts` for paginated, filterable queries rather than overloading the CRUD-oriented repository file. This keeps server-side search contracts explicit and avoids hydrating full clinic datasets into UI pages.
+
+### Lexical For Medical History Editing
+
+Patient past medical history editing uses Lexical in the React client with sanitized HTML persisted to the database. This keeps the editor lightweight while supporting structured formatting for clinical history notes.
+
+### Explicit Reset Script Instead Of Dropping The Entire Public Schema
+
+The repository uses `scripts/reset-supabase.sql` to explicitly remove MedFlow-owned tables, enums, helper functions, and storage buckets while preserving Supabase-managed schemas and auth users. This is safer than dropping the entire `public` schema in a shared Supabase project.

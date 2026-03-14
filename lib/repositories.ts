@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+﻿import { randomUUID } from "node:crypto";
 
 import { createSupabaseAdminClient } from "@/lib/supabase";
 import type {
@@ -27,12 +27,15 @@ type PatientRow = {
   last_name: string;
   dob: string;
   gender: Patient["gender"];
+  guardian_name: string | null;
   phone: string;
   email: string;
   insurance_id: string;
   allergies: string[] | null;
   medications: string[] | null;
   diagnoses: string[] | null;
+  past_medical_history: string | null;
+  created_at: string;
 };
 
 type ProviderRow = {
@@ -115,12 +118,15 @@ function mapPatient(row: PatientRow): Patient {
     lastName: row.last_name,
     dob: row.dob,
     gender: row.gender,
+    guardianName: row.guardian_name ?? "",
     phone: row.phone,
     email: row.email,
     insuranceId: row.insurance_id,
     allergies: row.allergies ?? [],
     medications: row.medications ?? [],
-    diagnoses: row.diagnoses ?? []
+    diagnoses: row.diagnoses ?? [],
+    pastMedicalHistory: row.past_medical_history ?? "",
+    createdAt: row.created_at
   };
 }
 
@@ -255,7 +261,7 @@ export async function createProviderProfile(input: {
   return id;
 }
 
-export async function createPatientProfile(input: Omit<Patient, "id">) {
+export async function createPatientProfile(input: Omit<Patient, "id" | "createdAt">) {
   const supabase = createSupabaseAdminClient();
   const id = randomUUID();
   const { error } = await supabase.from("patients").insert({
@@ -266,12 +272,14 @@ export async function createPatientProfile(input: Omit<Patient, "id">) {
     last_name: input.lastName,
     dob: input.dob,
     gender: input.gender,
+    guardian_name: input.guardianName,
     phone: input.phone,
     email: input.email,
     insurance_id: input.insuranceId,
     allergies: input.allergies,
     medications: input.medications,
-    diagnoses: input.diagnoses
+    diagnoses: input.diagnoses,
+    past_medical_history: input.pastMedicalHistory
   });
 
   if (error) {
@@ -304,7 +312,7 @@ export async function listPatients(clinicId: string) {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("patients")
-    .select("id, auth_user_id, clinic_id, first_name, last_name, dob, gender, phone, email, insurance_id, allergies, medications, diagnoses")
+    .select("id, auth_user_id, clinic_id, first_name, last_name, dob, gender, guardian_name, phone, email, insurance_id, allergies, medications, diagnoses, past_medical_history, created_at")
     .eq("clinic_id", clinicId)
     .order("last_name", { ascending: true });
 
@@ -323,7 +331,7 @@ export async function getPatient(id: string, clinicId: string) {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("patients")
-    .select("id, auth_user_id, clinic_id, first_name, last_name, dob, gender, phone, email, insurance_id, allergies, medications, diagnoses")
+    .select("id, auth_user_id, clinic_id, first_name, last_name, dob, gender, guardian_name, phone, email, insurance_id, allergies, medications, diagnoses, past_medical_history, created_at")
     .eq("id", id)
     .eq("clinic_id", clinicId)
     .maybeSingle();
@@ -339,7 +347,7 @@ export async function getPatient(id: string, clinicId: string) {
   return data ? mapPatient(data as PatientRow) : null;
 }
 
-export async function createPatient(input: Omit<Patient, "id">) {
+export async function createPatient(input: Omit<Patient, "id" | "createdAt">) {
   const id = await createPatientProfile(input);
   const patient = await getPatient(id, input.clinicId);
 
@@ -359,21 +367,42 @@ export async function updatePatient(id: string, clinicId: string, changes: Parti
       last_name: changes.lastName,
       dob: changes.dob,
       gender: changes.gender,
+      guardian_name: changes.guardianName,
       phone: changes.phone,
       email: changes.email,
       insurance_id: changes.insuranceId,
       allergies: changes.allergies,
       medications: changes.medications,
       diagnoses: changes.diagnoses,
+      past_medical_history: changes.pastMedicalHistory,
       auth_user_id: changes.authUserId
     })
     .eq("id", id)
     .eq("clinic_id", clinicId)
-    .select("id, auth_user_id, clinic_id, first_name, last_name, dob, gender, phone, email, insurance_id, allergies, medications, diagnoses")
+    .select("id, auth_user_id, clinic_id, first_name, last_name, dob, gender, guardian_name, phone, email, insurance_id, allergies, medications, diagnoses, past_medical_history, created_at")
     .maybeSingle();
 
   if (error) {
     throw formatRepositoryError("update patient", error);
+  }
+
+  return data ? mapPatient(data as PatientRow) : null;
+}
+
+export async function updatePatientMedicalHistory(id: string, clinicId: string, pastMedicalHistory: string) {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("patients")
+    .update({
+      past_medical_history: pastMedicalHistory
+    })
+    .eq("id", id)
+    .eq("clinic_id", clinicId)
+    .select("id, auth_user_id, clinic_id, first_name, last_name, dob, gender, guardian_name, phone, email, insurance_id, allergies, medications, diagnoses, past_medical_history, created_at")
+    .maybeSingle();
+
+  if (error) {
+    throw formatRepositoryError("update patient medical history", error);
   }
 
   return data ? mapPatient(data as PatientRow) : null;
@@ -656,4 +685,9 @@ export async function getPatientSummary(clinicId: string, patientId: string) {
     labs
   };
 }
+
+
+
+
+
 

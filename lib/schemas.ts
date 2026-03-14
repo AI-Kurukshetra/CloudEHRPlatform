@@ -1,6 +1,30 @@
-import { z } from "zod";
+﻿import { z } from "zod";
+
+const emptyStringToUndefined = (value: unknown) => {
+  if (typeof value === "string" && value.trim() === "") {
+    return undefined;
+  }
+
+  return value;
+};
+
+const optionalString = (max: number) => z.preprocess(
+  emptyStringToUndefined,
+  z.string().trim().min(1).max(max).optional()
+);
+
+const optionalDateString = z.preprocess(
+  emptyStringToUndefined,
+  z.string().date().optional()
+);
+
+const paginationSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20)
+});
 
 export const roleSchema = z.enum(["admin", "doctor", "staff", "patient"]);
+export const genderSchema = z.enum(["male", "female", "other", "unknown"]);
 
 export const loginSchema = z.object({
   email: z.string().email(),
@@ -16,7 +40,7 @@ export const registerSchema = z.object({
   specialty: z.string().max(120).optional().or(z.literal("")),
   licenseNumber: z.string().max(120).optional().or(z.literal("")),
   dob: z.string().optional().or(z.literal("")),
-  gender: z.enum(["male", "female", "other", "unknown"]).optional(),
+  gender: genderSchema.optional(),
   phone: z.string().max(20).optional().or(z.literal("")),
   insuranceId: z.string().max(40).optional().or(z.literal(""))
 }).superRefine((value, ctx) => {
@@ -46,7 +70,8 @@ export const patientSchema = z.object({
   firstName: z.string().min(1).max(80),
   lastName: z.string().min(1).max(80),
   dob: z.string().date(),
-  gender: z.enum(["male", "female", "other", "unknown"]),
+  gender: genderSchema,
+  guardianName: z.string().trim().max(120).optional().or(z.literal("")),
   phone: z.string().min(7).max(20),
   email: z.string().email(),
   insuranceId: z.string().min(4).max(40),
@@ -54,7 +79,25 @@ export const patientSchema = z.object({
   allergies: z.array(z.string().min(1)).default([]),
   medications: z.array(z.string().min(1)).default([]),
   diagnoses: z.array(z.string().min(1)).default([]),
+  pastMedicalHistory: z.string().max(50000).optional().or(z.literal("")),
   authUserId: z.string().uuid().optional().nullable()
+});
+
+export const patientFiltersSchema = paginationSchema.extend({
+  search: optionalString(120),
+  dob: optionalDateString,
+  gender: z.preprocess(emptyStringToUndefined, genderSchema.optional()),
+  allergy: optionalString(120),
+  registrationDate: optionalDateString
+});
+
+export const patientLookupSchema = z.object({
+  search: optionalString(120),
+  limit: z.coerce.number().int().min(1).max(20).default(10)
+});
+
+export const medicalHistorySchema = z.object({
+  pastMedicalHistory: z.string().max(50000)
 });
 
 export const appointmentSchema = z.object({
@@ -68,6 +111,15 @@ export const appointmentSchema = z.object({
   notes: z.string().max(1000).default("")
 });
 
+export const appointmentFiltersSchema = paginationSchema.extend({
+  search: optionalString(120),
+  status: z.preprocess(emptyStringToUndefined, z.enum(["scheduled", "checked_in", "completed", "cancelled"]).optional()),
+  patientId: z.preprocess(emptyStringToUndefined, z.string().uuid().optional()),
+  providerId: z.preprocess(emptyStringToUndefined, z.string().uuid().optional()),
+  dateFrom: optionalDateString,
+  dateTo: optionalDateString
+});
+
 export const prescriptionSchema = z.object({
   patientId: z.string().uuid(),
   providerId: z.string().uuid(),
@@ -77,3 +129,16 @@ export const prescriptionSchema = z.object({
   frequency: z.string().min(1).max(120),
   duration: z.string().min(1).max(120)
 });
+
+export const prescriptionFiltersSchema = paginationSchema.extend({
+  search: optionalString(120),
+  patientId: z.preprocess(emptyStringToUndefined, z.string().uuid().optional()),
+  providerId: z.preprocess(emptyStringToUndefined, z.string().uuid().optional())
+});
+
+export const labResultFiltersSchema = paginationSchema.extend({
+  search: optionalString(120),
+  patientId: z.preprocess(emptyStringToUndefined, z.string().uuid().optional()),
+  flag: z.preprocess(emptyStringToUndefined, z.enum(["normal", "abnormal", "critical"]).optional())
+});
+

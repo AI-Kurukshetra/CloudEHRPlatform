@@ -1,4 +1,4 @@
-export function PatientIntakeForm({ clinicId }: { clinicId: string }) {
+﻿export function PatientIntakeForm({ clinicId }: { clinicId: string }) {
   return (
     <form action="/api/patients" method="post" className="grid gap-4 md:grid-cols-2">
       <input type="hidden" name="clinicId" value={clinicId} />
@@ -23,6 +23,10 @@ export function PatientIntakeForm({ clinicId }: { clinicId: string }) {
           <option value="male">Male</option>
           <option value="other">Other</option>
         </select>
+      </label>
+      <label className="block text-sm text-ink/75 md:col-span-2">
+        Parent or guardian name
+        <input name="guardianName" placeholder="Optional for adults" />
       </label>
       <label className="block text-sm text-ink/75">
         Phone
@@ -54,3 +58,4 @@ export function PatientIntakeForm({ clinicId }: { clinicId: string }) {
     </form>
   );
 }
+

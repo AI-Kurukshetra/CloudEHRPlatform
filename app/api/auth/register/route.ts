@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 import { ensureClinic, insertUserRecord, createPatientProfile, createProviderProfile, logAuditAction } from "@/lib/repositories";
 import { readRequestBody } from "@/lib/http";
@@ -83,12 +83,14 @@ export async function POST(request: Request) {
         lastName: name.lastName,
         dob: parsed.data.dob || "1990-01-01",
         gender: parsed.data.gender ?? "unknown",
+        guardianName: "",
         phone: parsed.data.phone || "0000000000",
         email: parsed.data.email,
         insuranceId: parsed.data.insuranceId || "SELF-PAY",
         allergies: [],
         medications: [],
-        diagnoses: []
+        diagnoses: [],
+        pastMedicalHistory: ""
       });
     }
 
@@ -122,3 +124,5 @@ export async function POST(request: Request) {
 
   return NextResponse.redirect(new URL("/dashboard", request.url), { status: 303 });
 }
+
+

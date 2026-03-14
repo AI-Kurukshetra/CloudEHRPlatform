@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
 import { readRequestBody, wantsJson } from "@/lib/http";
-import { createPatient, listPatients, logAuditAction } from "@/lib/repositories";
-import { patientSchema } from "@/lib/schemas";
+import { listPatientsPage } from "@/lib/query-repositories";
+import { createPatient, logAuditAction } from "@/lib/repositories";
+import { patientFiltersSchema, patientSchema } from "@/lib/schemas";
 
 function csvToArray(value: FormDataEntryValue | undefined) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -19,15 +20,22 @@ function errorResponse(request: Request, redirectTo: string, message: string, st
     : NextResponse.redirect(new URL(`${redirectTo}?error=${encodeURIComponent(message)}`, request.url), { status: 303 });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getSessionUser();
 
   if (!session || !["admin", "doctor", "staff"].includes(session.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const patients = await listPatients(session.clinicId);
-  return NextResponse.json({ data: patients });
+  const searchParams = Object.fromEntries(new URL(request.url).searchParams.entries());
+  const parsed = patientFiltersSchema.safeParse(searchParams);
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid query parameters." }, { status: 400 });
+  }
+
+  const patients = await listPatientsPage(session.clinicId, parsed.data);
+  return NextResponse.json(patients);
 }
 
 export async function POST(request: Request) {
@@ -45,6 +53,8 @@ export async function POST(request: Request) {
   const parsed = patientSchema.safeParse({
     ...data,
     clinicId: session.clinicId,
+    guardianName: typeof (data as Record<string, unknown>).guardianName === "string" ? (data as Record<string, string>).guardianName : "",
+    pastMedicalHistory: typeof (data as Record<string, unknown>).pastMedicalHistory === "string" ? (data as Record<string, string>).pastMedicalHistory : "",
     allergies: csvToArray((data as Record<string, FormDataEntryValue>).allergies),
     medications: csvToArray((data as Record<string, FormDataEntryValue>).medications),
     diagnoses: csvToArray((data as Record<string, FormDataEntryValue>).diagnoses)
@@ -55,7 +65,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const patient = await createPatient(parsed.data);
+    const patient = await createPatient({
+      ...parsed.data,
+      guardianName: parsed.data.guardianName ?? "",
+      pastMedicalHistory: parsed.data.pastMedicalHistory ?? ""
+    });
     await logAuditAction(session.id, `Created patient ${patient.firstName} ${patient.lastName}`);
 
     return wantsJson(request)
@@ -65,3 +79,4 @@ export async function POST(request: Request) {
     return errorResponse(request, redirectTo, error instanceof Error ? error.message : "Unable to create patient.", 500);
   }
 }
+

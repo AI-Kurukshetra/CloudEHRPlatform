@@ -1,8 +1,9 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SectionCard } from "@/components/dashboard/section-card";
 import { AppShell } from "@/components/layout/app-shell";
+import { MedicalHistoryEditor } from "@/components/patients/medical-history-editor";
 import { requireUser } from "@/lib/auth";
 import { getPatientSummary } from "@/lib/repositories";
 import { formatDate, formatDateTime } from "@/lib/utils";
@@ -21,12 +22,13 @@ export default async function PatientDetailPage({
   }
 
   const { patient, appointments, prescriptions, labs } = summary;
+  const canEditHistory = user.role === "admin" || user.role === "doctor";
 
   return (
     <AppShell
       user={user}
       title={`${patient.firstName} ${patient.lastName}`}
-      subtitle="Unified patient chart for demographics, visit history, medication activity, and laboratory review."
+      subtitle="Unified patient chart for demographics, medical history, visit activity, medication orders, and recent laboratory review."
     >
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <SectionCard eyebrow="Demographics" title="Chart summary">
@@ -47,6 +49,14 @@ export default async function PatientDetailPage({
               <dt className="text-xs uppercase tracking-[0.22em] text-ink/45">Email</dt>
               <dd className="mt-2 text-base font-medium text-ink">{patient.email}</dd>
             </div>
+            <div>
+              <dt className="text-xs uppercase tracking-[0.22em] text-ink/45">Guardian</dt>
+              <dd className="mt-2 text-base font-medium text-ink">{patient.guardianName || "Not documented"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-[0.22em] text-ink/45">Registration date</dt>
+              <dd className="mt-2 text-base font-medium text-ink">{formatDate(patient.createdAt)}</dd>
+            </div>
           </dl>
           <div className="mt-6 grid gap-3">
             <div className="rounded-[1.1rem] bg-white/55 p-4">
@@ -64,6 +74,9 @@ export default async function PatientDetailPage({
           </div>
         </SectionCard>
         <div className="space-y-6">
+          <SectionCard eyebrow="History" title="Past medical history">
+            <MedicalHistoryEditor patientId={patient.id} initialHtml={patient.pastMedicalHistory} canEdit={canEditHistory} />
+          </SectionCard>
           <SectionCard eyebrow="Encounters" title="Upcoming and historical visits">
             <div className="space-y-3">
               {appointments.map((appointment) => (
@@ -116,3 +129,4 @@ export default async function PatientDetailPage({
     </AppShell>
   );
 }
+

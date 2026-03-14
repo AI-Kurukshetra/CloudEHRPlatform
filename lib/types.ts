@@ -1,4 +1,19 @@
-export type Role = "admin" | "doctor" | "staff" | "patient";
+﻿export type Role = "admin" | "doctor" | "staff" | "patient";
+export type PatientGender = "male" | "female" | "other" | "unknown";
+
+export type PaginationMeta = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+};
+
+export type PaginatedResult<T> = {
+  data: T[];
+  pagination: PaginationMeta;
+};
 
 export type User = {
   id: string;
@@ -24,7 +39,8 @@ export type Patient = {
   firstName: string;
   lastName: string;
   dob: string;
-  gender: "male" | "female" | "other" | "unknown";
+  gender: PatientGender;
+  guardianName: string;
   phone: string;
   email: string;
   insuranceId: string;
@@ -32,8 +48,25 @@ export type Patient = {
   allergies: string[];
   medications: string[];
   diagnoses: string[];
+  pastMedicalHistory: string;
+  createdAt: string;
   authUserId?: string | null;
 };
+
+export type PatientSummaryCard = Pick<
+  Patient,
+  | "id"
+  | "firstName"
+  | "lastName"
+  | "guardianName"
+  | "dob"
+  | "gender"
+  | "phone"
+  | "allergies"
+  | "diagnoses"
+  | "insuranceId"
+  | "createdAt"
+>;
 
 export type Provider = {
   id: string;
@@ -62,6 +95,11 @@ export type Appointment = {
   notes: string;
 };
 
+export type AppointmentListItem = Appointment & {
+  patientName: string;
+  providerName: string;
+};
+
 export type Prescription = {
   id: string;
   patientId: string;
@@ -74,6 +112,11 @@ export type Prescription = {
   issuedAt: string;
 };
 
+export type PrescriptionListItem = Prescription & {
+  patientName: string;
+  providerName: string;
+};
+
 export type LabResult = {
   id: string;
   patientId: string;
@@ -82,6 +125,10 @@ export type LabResult = {
   result: string;
   flag: "normal" | "abnormal" | "critical";
   collectedAt: string;
+};
+
+export type LabResultListItem = LabResult & {
+  patientName: string;
 };
 
 export type AuditLog = {
@@ -99,3 +146,4 @@ export type DocumentRecord = {
   fileType: string;
   createdAt: string;
 };
+

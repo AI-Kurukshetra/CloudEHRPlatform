@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -79,3 +79,25 @@ button.secondary {
     @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold;
   }
 }
+
+.medical-history-editor {
+  line-height: 1.7;
+}
+
+.medical-history-content {
+  line-height: 1.7;
+  color: rgba(17, 35, 48, 0.8);
+}
+
+.medical-history-content p,
+.medical-history-content ul,
+.medical-history-content ol,
+.medical-history-content blockquote {
+  margin: 0 0 0.9rem;
+}
+
+.medical-history-content ul,
+.medical-history-content ol {
+  padding-left: 1.35rem;
+}
+

@@ -1,4 +1,4 @@
-# Progress
+﻿# Progress
 
 ## Current Stage
 
@@ -25,6 +25,9 @@ The project is in an implemented application foundation stage. The core Supabase
 ### Clinical and Operational Workflows
 
 - Patient listing and chart detail view
+- Paginated patient directory search by patient name, guardian name, phone, gender, DOB, allergy, and registration date
+- Rich-text past medical history editing on the patient chart for doctor and admin roles
+- Paginated appointment, prescription, and lab result list views with server-side filters
 - Appointment scheduling and API CRUD
 - Prescription listing and creation
 - Lab results viewing
@@ -34,15 +37,17 @@ The project is in an implemented application foundation stage. The core Supabase
 
 ### Data Layer
 
-- Auth-linked SQL migration with RLS policies
+- Standalone current-schema bootstrap migration in `supabase/migrations/0002_patient_search_and_history.sql`
 - Repository layer using Supabase service role access on the server
-- Idempotent seed script with realistic demo clinic data
+- Dedicated paginated query module for list-heavy screens
+- Idempotent seed script with realistic demo clinic data and more than 70 seeded patient charts
+- Reset SQL script for tearing down MedFlow tables and storage buckets before replaying migrations
 
 ## What Remains
 
 - Billing and insurance workflows
 - Telehealth module
-- Clinical documentation authoring UI
+- Broader clinical documentation authoring UI beyond patient past medical history
 - Document management UI
 - Lab import/create UI
 - Automated tests
@@ -52,4 +57,4 @@ The project is in an implemented application foundation stage. The core Supabase
 
 - TypeScript typecheck passes
 - Production build passes
-- Supabase seed script has been executed successfully against the configured project
+- The standalone bootstrap migration file has been updated to initialize the full current schema on a clean Supabase database
